@@ -51,6 +51,27 @@
             "env": ["all"],
             "target": ["all"],
             "is_include_file": false
+        },
+        {
+            "name": "hw/common_lib/ram_wrapper/rtl/ram_wrapper_NR1W.sv",
+            "library": "work",
+            "env": ["all"],
+            "target": ["all"],
+            "is_include_file": false
+        },
+        {
+            "name": "hw/common_lib/ram_wrapper/rtl/ram_NR1W_behav.sv",
+            "library": "work",
+            "env": ["all"],
+            "target": ["all"],
+            "is_include_file": false
+        },
+        {
+            "name": "hw/common_lib/ram_wrapper/rtl/ram_NR1W_behav_core.sv",
+            "library": "work",
+            "env": ["all"],
+            "target": ["all"],
+            "is_include_file": false
         }
     ],
     "constraint_files": [

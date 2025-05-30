@@ -655,7 +655,7 @@
           "field": [
             {
               "name": "pea_regf_period",
-              "description": "Number of cycles between 2 consecutive data transfert between PEA and regfile",
+              "description": "Number of cycles between 2 consecutive data transfer between PEA and regfile",
               "size_b": 8,
               "offset_b": 0,
               "default": {
@@ -664,7 +664,7 @@
             },
             {
               "name": "pem_regf_period",
-              "description": "Number of cycles between 2 consecutive data transfert between PEM and regfile",
+              "description": "Number of cycles between 2 consecutive data transfer between PEM and regfile",
               "size_b": 8,
               "offset_b": 8,
               "default": {
@@ -673,7 +673,7 @@
             },
             {
               "name": "pep_regf_period",
-              "description": "Number of cycles between 2 consecutive data transfert between PEP and regfile",
+              "description": "Number of cycles between 2 consecutive data transfer between PEP and regfile",
               "size_b": 8,
               "offset_b": 16,
               "default": {
@@ -1429,6 +1429,45 @@
             "Cst": 4294967295
           },
           "field": null
+        }
+      ]
+    },
+    {
+      "name": "keyswitch",
+      "description": "Keyswitch Configuration",
+      "offset": 12288,
+      "bytes_align": 4,
+      "range": 4,
+      "register": [
+        {
+          "name": "config",
+          "description": "(1) Use use modulus switching mean compensation. (default), (0) Don't use modulus switching mean compensation.",
+          "owner": "User",
+          "read_access": "Read",
+          "write_access": "Write",
+          "offset": 12288,
+          "default": {
+            "ParamsField": {
+              "params": [],
+              "name_val": [
+                [
+                  "mod_switch_mean_comp",
+                  "'h1"
+                ]
+              ]
+            }
+          },
+          "field": [
+            {
+              "name": "mod_switch_mean_comp",
+              "description": "Controls whether to use modulus switch mean compensation.",
+              "size_b": 1,
+              "offset_b": 0,
+              "default": {
+                "Cst": 1
+              }
+            }
+          ]
         }
       ]
     },

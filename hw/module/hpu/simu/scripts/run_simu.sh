@@ -66,7 +66,8 @@ INT_SIZE_L=("2" "4" "8")
 AXI_DATA_W_L=("512" "256" "128")
 FPGA_L=("v80")
 MSPLIT_TYPE_L=("PEP_MSPLIT_main2_subs2" "PEP_MSPLIT_main1_subs3" "PEP_MSPLIT_main3_subs1")
-INTER_PART_PIPE_L=("0" "1" ""2)
+INTER_PART_PIPE_L=("0" "1" "2")
+MEAN_COMP_L=("0" "1")
 
 for ((j = 0; j < 1; j++)); do
   size=${#NTT_MOD_L[@]}
@@ -105,6 +106,11 @@ for ((j = 0; j < 1; j++)); do
   size=${#INTER_PART_PIPE_L[@]}
   index=$(($RANDOM % $size))
   INTER_PART_PIPE=${INTER_PART_PIPE_L[$index]}
+
+  # Choose whether to enable mean compensation
+  size=${#MEAN_COMP_L[@]}
+  index=$(($RANDOM % $size))
+  MEAN_COMP=${MEAN_COMP_L[$index]}
 
   if [[ $IOP =~ ^IOP\[([0-9]+)\]$ ]]; then
     # the custom code deals with a 2b word
@@ -230,6 +236,7 @@ for ((j = 0; j < 1; j++)); do
                   -i $REGF_REG_NB \
                   -j $REGF_COEF_NB \
                   -k $REGF_SEQ \
+                  -p $MEAN_COMP \
                   $run_args \
                   -- -P RAM_LATENCY int $RAM_LATENCY \
                   -P USE_BPIP int $USE_BPIP \

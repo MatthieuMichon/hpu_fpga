@@ -56,7 +56,8 @@ def cstr_ksk_w (lbz, ksk_w):
 
 def cstr_ks (ks_l, lbx, lby, lbz, r, s, glwe_k, ksk_w, ntt_w, batch_pbs_nb):
     """
-    Check that there is enough time to empty the KS output pipe
+    Check that there is enough time to empty the KS output pipe and the keyswitch modulus size fits
+    the software constraints
     """
     q_w                   = ntt_w
     ks_lg_nb              = (ks_l + lbz-1) // lbz;
@@ -86,7 +87,8 @@ def cstr_ks (ks_l, lbx, lby, lbz, r, s, glwe_k, ksk_w, ntt_w, batch_pbs_nb):
             (column_proc_cycle_min >= read_pipe_cycle_max)
             and (blwe_subw_nb*blwe_subw_coef_nb == lby)
             and  ((lby <= ksk_coef_per_axi4_word) or ((lby // ksk_coef_per_axi4_word)*ksk_coef_per_axi4_word == lby))
-            and  ((lby >= ksk_coef_per_axi4_word) or (ksk_coef_per_axi4_word//lby)*lby == ksk_coef_per_axi4_word ))
+            and  ((lby >= ksk_coef_per_axi4_word) or (ksk_coef_per_axi4_word//lby)*lby == ksk_coef_per_axi4_word )
+            and ksk_w <= 32)
 
 def cstr_regf_seq (regf_seq, regf_coef):
     """
@@ -233,7 +235,7 @@ if __name__ == '__main__':
     r1.add_constraint(cstr_batch,('BATCH_PBS_NB','TOTAL_PBS_NB'))
     r1.add_constraint(cstr_pbs_level_div, ('BWD_PSI_DIV', 'PBS_L', 'NTT_ARCH', 'PSI'))
     r1.add_constraint(cstr_level, ('PBS_B_W','PBS_L','MOD_NTT_W'))
-    r1.add_constraint(cstr_level, ('KS_B_W','KS_L','MOD_NTT_W'))
+    r1.add_constraint(cstr_level, ('KS_B_W','KS_L','MOD_KSK_W'))
     r1.add_constraint(cstr_ks, ('KS_L', 'LBX', 'LBY', 'LBZ', 'R', 'S', 'GLWE_K', 'MOD_KSK_W', 'MOD_NTT_W','BATCH_PBS_NB'))
     r1.add_constraint(cstr_ksk_w, ('LBZ', 'MOD_KSK_W'))
     r1.add_constraint(cstr_regf_seq, ('REGF_SEQ', 'REGF_COEF_NB'))

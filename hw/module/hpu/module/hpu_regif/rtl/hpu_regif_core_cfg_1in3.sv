@@ -1,8 +1,8 @@
 // ============================================================================================== //
 // Description  : Axi4-lite register bank
 // This file was generated with rust regmap generator:
-//  * Date:  2025-04-24
-//  * Tool_version: c055357dd4d8749d8e23efd7e8cd8bd599e105de
+//  * Date:  2025-06-12
+//  * Tool_version: 9bab20def30cfd61d2ed40616bd05d08a747ddf4
 // ---------------------------------------------------------------------------------------------- //
 // xR[n]W[na]
 // |-> who is in charge of the register update logic : u -> User
@@ -182,6 +182,8 @@ import hpu_regif_core_cfg_1in3_pkg::*;
     , output bpip_use_t r_bpip_use
   // Register IO: bpip_timeout
     , output logic [REG_DATA_W-1: 0] r_bpip_timeout
+  // Register IO: keyswitch_config
+    , output keyswitch_config_t r_keyswitch_config
 );
 // ============================================================================================== --
 // localparam
@@ -570,6 +572,12 @@ import hpu_regif_core_cfg_1in3_pkg::*;
 //-- Default bpip_timeout
   logic [REG_DATA_W-1:0]bpip_timeout_default;
   assign bpip_timeout_default = 'hffffffff;
+//-- Default keyswitch_config
+  keyswitch_config_t keyswitch_config_default;
+  always_comb begin
+    keyswitch_config_default = 'h0;
+    keyswitch_config_default.mod_switch_mean_comp = 'h1;
+  end
 // ============================================================================================== --
 // Write reg
 // ============================================================================================== --
@@ -1037,6 +1045,17 @@ import hpu_regif_core_cfg_1in3_pkg::*;
       r_bpip_timeout       <= r_bpip_timeoutD;
     end
   end
+// Register FF: keyswitch_config
+  logic [REG_DATA_W-1:0] r_keyswitch_configD;
+  assign r_keyswitch_configD = (wr_en_ok && (wr_add[AXIL_ADD_RANGE_W-1:0] == KEYSWITCH_CONFIG_OFS[AXIL_ADD_RANGE_W-1:0]))? wr_data: r_keyswitch_config;
+  always_ff @(posedge clk) begin
+    if (!s_rst_n) begin
+      r_keyswitch_config       <= keyswitch_config_default;
+    end
+    else begin
+      r_keyswitch_config       <= r_keyswitch_configD;
+    end
+  end
 // ============================================================================================== --
 // Read reg
 // ============================================================================================== --
@@ -1250,6 +1269,9 @@ import hpu_regif_core_cfg_1in3_pkg::*;
           end
           BPIP_TIMEOUT_OFS[AXIL_ADD_RANGE_W-1:0]: begin // register bpip_timeout
             axil_rdataD = r_bpip_timeout;
+          end
+          KEYSWITCH_CONFIG_OFS[AXIL_ADD_RANGE_W-1:0]: begin // register keyswitch_config
+            axil_rdataD = r_keyswitch_config;
           end
           default:
             axil_rdataD = REG_DATA_W'('h0BAD_ADD1); // Default value

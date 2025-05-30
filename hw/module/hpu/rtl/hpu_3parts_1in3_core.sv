@@ -228,6 +228,7 @@ module hpu_3parts_1in3_core
   logic                                                        use_bpip;
   logic                                                        use_bpip_opportunism;
   logic [TIMEOUT_CNT_W-1:0]                                    bpip_timeout;
+  logic                                                        mod_switch_mean_comp;
 
   // seq <-> pe_pbs
   logic [PE_INST_W-1:0]                   isc_pep_insn;
@@ -276,9 +277,14 @@ module hpu_3parts_1in3_core
   //== Key switch
   // KS <-> Body RAM
   logic                                   ks_boram_wr_en;
-  logic [LWE_COEF_W-1:0]                  ks_boram_data;
+  logic [MOD_KSK_W-1:0]                   ks_boram_data;
   logic [PID_W-1:0]                       ks_boram_pid;
   logic                                   ks_boram_parity;
+
+  // KS <-> Body RAM (mean correction)
+  logic                                   ks_boram_corr_wr_en;
+  logic [KS_MAX_ERROR_W-1:0]              ks_boram_corr_data;
+  logic [PID_W-1:0]                       ks_boram_corr_pid;
 
   logic                                   inc_ksk_wr_ptr;
   logic                                   inc_ksk_rd_ptr;
@@ -415,6 +421,7 @@ module hpu_3parts_1in3_core
     .use_bpip                  (use_bpip),
     .use_bpip_opportunism      (use_bpip_opportunism),
     .bpip_timeout              (bpip_timeout),
+    .mod_switch_mean_comp      (mod_switch_mean_comp),
 
     // To PE_MEM
     .isc_pem_insn              (isc_pem_insn),
@@ -629,6 +636,10 @@ module hpu_3parts_1in3_core
     .ks_boram_pid               (ks_boram_pid),
     .ks_boram_parity            (ks_boram_parity),
 
+    .ks_boram_corr_wr_en        (ks_boram_corr_wr_en),
+    .ks_boram_corr_data         (ks_boram_corr_data),
+    .ks_boram_corr_pid          (ks_boram_corr_pid),
+
     .subs_main_ntt_acc_modsw_avail   (subs_main_acc_data_avail),
     .subs_main_ntt_acc_modsw_data    (subs_main_acc_data.data),
     .subs_main_ntt_acc_modsw_sob     (subs_main_acc_data.sob),
@@ -803,6 +814,10 @@ module hpu_3parts_1in3_core
     .ks_boram_pid             (ks_boram_pid),
     .ks_boram_parity          (ks_boram_parity),
 
+    .ks_boram_corr_wr_en      (ks_boram_corr_wr_en),
+    .ks_boram_corr_data       (ks_boram_corr_data),
+    .ks_boram_corr_pid        (ks_boram_corr_pid),
+
     .inc_ksk_wr_ptr           (inc_ksk_wr_ptr),
     .inc_ksk_rd_ptr           (inc_ksk_rd_ptr),
 
@@ -810,6 +825,7 @@ module hpu_3parts_1in3_core
     .ks_batch_cmd_avail       (ks_batch_cmd_avail),
 
     .reset_cache              (reset_ks),
+    .mod_switch_mean_comp     (mod_switch_mean_comp),
 
     .pep_error                (pep_ks_error),
     .pep_rif_info             (pep_ks_rif_info),

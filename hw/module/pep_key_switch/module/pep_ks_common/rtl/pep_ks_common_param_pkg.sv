@@ -52,6 +52,22 @@ package pep_ks_common_param_pkg;
   localparam int KS_LG_W          = $clog2(KS_LG_NB) == 0 ? 1 : $clog2(KS_LG_NB);
 
   // ------------------------------------------------------------------------------------------- --
+  // Mean compensation configuration
+  // ------------------------------------------------------------------------------------------- --
+  // Mean correction related
+  localparam logic [127:0] KS_MAX_ABS_ERROR = (2**(MOD_KSK_W - LWE_COEF_W - 1) * LWE_K);
+  localparam int unsigned KS_MAX_ERROR_W    = unsigned'($clog2(KS_MAX_ABS_ERROR+1) + 1); // The mod_switch_error is signed
+
+  // The KS key mean is encoded in fixed point. The final encoded value is:
+  //  KS_KEY_MEAN * 2**-KS_KEY_MEAN_F
+  localparam real         KS_KEY_MEAN_R = 0.5;
+  localparam int unsigned KS_KEY_MEAN_W = 1;
+  localparam int unsigned KS_KEY_MEAN_F = 1; // Fixed point location index
+  localparam int unsigned KS_KEY_MEAN   = KS_KEY_MEAN_R * (1 << KS_KEY_MEAN_F);
+  // Note: An implicit convertion from a floating point value to an integer is implicitly
+  // rounded as stated in the system verilog standard.
+
+  // ------------------------------------------------------------------------------------------- --
   // type
   // ------------------------------------------------------------------------------------------- --
   typedef struct packed {

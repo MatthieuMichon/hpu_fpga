@@ -204,8 +204,12 @@ module tb_pep_key_switch;
 
   // Wr access to body RAM
   logic                                            boram_wr_en;
-  logic [LWE_COEF_W-1:0]                           boram_data;
+  logic [MOD_KSK_W-1:0]                            boram_data;
   logic [PID_W-1:0]                                boram_pid;
+
+  logic                                            boram_corr_wr_en;
+  logic [KS_MAX_ERROR_W-1:0]                       boram_corr_data;
+  logic [PID_W-1:0]                                boram_corr_pid;
 
 // ============================================================================================== --
 // Design under test instance
@@ -250,6 +254,10 @@ module tb_pep_key_switch;
     .boram_wr_en           (boram_wr_en),
     .boram_data            (boram_data),
     .boram_pid             (boram_pid),
+
+    .boram_corr_wr_en      (boram_corr_wr_en),
+    .boram_corr_data       (boram_corr_data),
+    .boram_corr_pid        (boram_corr_pid),
 
     .reset_cache           ('0), // Not checked here
 

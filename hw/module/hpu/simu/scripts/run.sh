@@ -76,6 +76,8 @@ REGF_SEQ=4
 AXI_DATA_W=512
 FPGA="u55c"
 
+MOD_SWITCH_MEAN_COMP=1
+
 GRAM_NB=4
 TOP="hpu"
 GLWE_PC=1
@@ -157,7 +159,7 @@ echo "INFO> Parse command line"
 # Initialize your own variables here:
 NTT_RDX_CUT_S_TMP=()
 REGIF_FILE_S_TMP=()
-while getopts "Chzg:l:R:P:S:w:t:m:c:H:K:s:e:b:q:W:A:J:I:L:B:r:V:X:Y:Z:G:o:u:f:O:U:F:i:j:k:x:E:y:n:a:M:T:" opt; do
+while getopts "Chzg:l:R:P:S:w:t:m:c:H:K:s:e:b:q:W:A:J:I:L:B:r:V:X:Y:Z:G:o:u:f:O:U:F:i:j:k:x:E:y:n:a:M:T:p:" opt; do
   case "$opt" in
     h)
       usage
@@ -302,6 +304,9 @@ while getopts "Chzg:l:R:P:S:w:t:m:c:H:K:s:e:b:q:W:A:J:I:L:B:r:V:X:Y:Z:G:o:u:f:O:
       ;;
     T)
       REGIF_FILE_S_TMP+=($OPTARG)
+      ;;
+    p)
+      MOD_SWITCH_MEAN_COMP=($OPTARG)
       ;;
     :)
       echo "$0: Must supply an argument to -$OPTARG." >&2
@@ -936,6 +941,7 @@ if [ $GEN_STIMULI -eq 1 ] ; then
                 --regmap_file ${REGIF_FILE_S_L[@]} \
                 $gen_cfg_args \
                 -o ${INPUT_DIR}/hpu_cfg.toml \
+                -m $MOD_SWITCH_MEAN_COMP \
                 -f"
   echo "INFO> Running $gen_cfg_cmd"
   $gen_cfg_cmd || exit 1
@@ -991,7 +997,7 @@ if [ $GEN_STIMULI -eq 1 ] ; then
       --params ${INPUT_DIR}/hpu_mockup_cfg.toml \
       --dump-out ${INPUT_DIR}/ucode"
   echo "INFO> Running $hpu_mockup_cmd in background"
-  $hpu_mockup_cmd &
+  RUST_LOG="debug" $hpu_mockup_cmd &
   hpu_mockup_pid=$!
   # Let some time to hpu_mockup to init and configure Ipc
   sleep 1

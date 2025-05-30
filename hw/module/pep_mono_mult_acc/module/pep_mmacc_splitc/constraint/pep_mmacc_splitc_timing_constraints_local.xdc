@@ -14,19 +14,23 @@
 
 set CLK_PERIOD 3.200
 create_clock -period $CLK_PERIOD -name CLK  [get_ports clk]
-set_clock_uncertainty -setup 0.100 [get_clocks CLK]
-set_clock_uncertainty -hold 0.010 [get_clocks CLK]
-set_system_jitter 0.200
-set_clock_latency -source -min 0.100 CLK
-set_clock_latency -source -max 0.120 CLK
+
+# No need to specify extra uncertainty or clock latency. Vivado already estimates this for us.
+#set_clock_uncertainty -setup 0.100 [get_clocks CLK]
+#set_clock_uncertainty -hold 0.010 [get_clocks CLK]
+#set_system_jitter 0.200
+#set_clock_latency -source -min 0.100 CLK
+#set_clock_latency -source -max 0.120 CLK
+
 # If the clock buffer location is known, define it for more accuracy in timing analysis
 #set_property HD.CLK_SRC BUFGCTRL_X0Y39 [get_ports clk]
 
 # Set delay on input and output ports
-set_input_delay [expr [get_property PERIOD [get_clocks CLK]] / 5] -clock CLK -max [get_ports * -filter {DIRECTION == IN && NAME !~ "clk"}]
-set_input_delay [expr [get_property PERIOD [get_clocks CLK]] / 5] -clock CLK -min [get_ports * -filter {DIRECTION == IN && NAME !~ "clk"}]
-set_output_delay [expr [get_property PERIOD [get_clocks CLK]] / 5] -clock CLK -max [all_outputs]
-set_output_delay [expr [get_property PERIOD [get_clocks CLK]] / 5] -clock CLK -min [all_outputs]
+# The input/output delay clock latency is broken in OOC with vivado 2024.1/2, disabling them.
+#set_input_delay [expr [get_property PERIOD [get_clocks CLK]] / 5] -clock CLK -max [get_ports * -filter {DIRECTION == IN && NAME !~ "clk"}]
+#set_input_delay [expr [get_property PERIOD [get_clocks CLK]] / 5] -clock CLK -min [get_ports * -filter {DIRECTION == IN && NAME !~ "clk"}]
+#set_output_delay [expr [get_property PERIOD [get_clocks CLK]] / 5] -clock CLK -max [all_outputs]
+#set_output_delay [expr [get_property PERIOD [get_clocks CLK]] / 5] -clock CLK -min [all_outputs]
 
 # pblock
 create_pblock user_pblock_SLR0

@@ -128,9 +128,14 @@ module pe_pbs_with_entry_main
   //== Key switch
   // KS <-> Body RAM
   input  logic                                                         ks_boram_wr_en,
-  input  logic [LWE_COEF_W-1:0]                                        ks_boram_data,
+  input  logic [MOD_KSK_W-1:0]                                         ks_boram_data,
   input  logic [PID_W-1:0]                                             ks_boram_pid,
   input  logic                                                         ks_boram_parity,
+
+  // KS <-> Body correction RAM
+  input  logic                                                         ks_boram_corr_wr_en,
+  input  logic [KS_MAX_ERROR_W-1:0]                                    ks_boram_corr_data,
+  input  logic [PID_W-1:0]                                             ks_boram_corr_pid,
 
   // ModSW -> MMACC : from subs
   input  logic                                                         subs_main_ntt_acc_modsw_avail,
@@ -474,6 +479,10 @@ module pe_pbs_with_entry_main
     .ks_boram_data                (ks_boram_data),
     .ks_boram_pid                 (ks_boram_pid),
     .ks_boram_parity              (ks_boram_parity),
+
+    .ks_boram_corr_wr_en          (ks_boram_corr_wr_en),
+    .ks_boram_corr_data           (ks_boram_corr_data),
+    .ks_boram_corr_pid            (ks_boram_corr_pid),
 
     .inc_bsk_wr_ptr               (inc_bsk_wr_ptr),
     .inc_bsk_rd_ptr               (inc_bsk_rd_ptr),

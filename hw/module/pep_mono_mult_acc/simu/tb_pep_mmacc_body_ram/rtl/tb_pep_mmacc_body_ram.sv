@@ -11,6 +11,7 @@
 module tb_pep_mmacc_body_ram;
   import param_tfhe_pkg::*;
   import pep_common_param_pkg::*;
+  import pep_ks_common_param_pkg::*;
 
 `timescale 1ns/10ps
 
@@ -23,6 +24,27 @@ module tb_pep_mmacc_body_ram;
   parameter int SAMPLE_NB = 1000;
 
   localparam int DATA_RAND_RANGE = 1023;
+  localparam int CORR_DATA_RAND_RANGE = ~(KS_MAX_ERROR_W'(0));
+
+// ============================================================================================== --
+// Types
+// ============================================================================================== --
+  // Note: ks_corr_t absolutely needs to be signed, otherwise all the expected computations in the
+  // checker become a mess. I prefer that the expected model is as pure and abstracted as possible
+  // to minimize the number of possible errors in the testbench.
+
+  typedef logic        [LWE_COEF_W-1:0]     modsw_coeff_t;
+  typedef logic        [MOD_KSK_W-1:0]      ks_coeff_t;
+  typedef logic signed [KS_MAX_ERROR_W-1:0] ks_corr_t;
+  typedef logic        [KS_BLOCK_COL_W-1:0] ks_block_cnt_t;
+  typedef logic        [PID_W-1:0]          pid_t;
+
+  typedef enum logic [1:0] {
+    WRITE_FIRST = 2'b10,  // Write First data
+    WRITE_2ND   = 2'b01,  // Write 2nd data
+    WRITE_DONE  = 2'b00,  // all writes done
+    RD_SENT     = 2'b11   // rd command sent => do not write anymore
+  } state_t;
 
 // ============================================================================================== --
 // clock, reset
@@ -59,19 +81,23 @@ module tb_pep_mmacc_body_ram;
 // ============================================================================================== --
 // input / output signals
 // ============================================================================================== --
-  logic                  ks_boram_wr_en;
-  logic [LWE_COEF_W-1:0] ks_boram_wr_data;
-  logic [PID_W-1:0]      ks_boram_wr_pid;
-  logic                  ks_boram_wr_parity;
+  logic         ks_boram_wr_en;
+  ks_coeff_t    ks_boram_wr_data;
+  pid_t         ks_boram_wr_pid;
+  logic         ks_boram_wr_parity;
 
-  logic [PID_W-1:0]      boram_rd_pid;
-  logic                  boram_rd_vld;
-  logic                  boram_rd_rdy;
-  logic                  boram_rd_parity;
+  logic         ks_boram_corr_wr_en;
+  ks_corr_t     ks_boram_corr_wr_data;
+  pid_t         ks_boram_corr_wr_pid;
 
-  logic [LWE_COEF_W-1:0] boram_sxt_data;
-  logic                  boram_sxt_data_vld;
-  logic                  boram_sxt_data_rdy;
+  pid_t         boram_rd_pid;
+  logic         boram_rd_vld;
+  logic         boram_rd_rdy;
+  logic         boram_rd_parity;
+
+  modsw_coeff_t boram_sxt_data;
+  logic         boram_sxt_data_vld;
+  logic         boram_sxt_data_rdy;
 
 // ============================================================================================== --
 // Error
@@ -93,22 +119,27 @@ module tb_pep_mmacc_body_ram;
   pep_mmacc_body_ram
   dut
   (
-    .clk                (clk),
-    .s_rst_n            (s_rst_n),
+    .clk                   (clk),
+    .s_rst_n               (s_rst_n),
+    .reset_cache           (1'b0),
 
-    .ks_boram_wr_en     (ks_boram_wr_en),
-    .ks_boram_wr_data   (ks_boram_wr_data),
-    .ks_boram_wr_pid    (ks_boram_wr_pid),
-    .ks_boram_wr_parity (ks_boram_wr_parity),
+    .ks_boram_wr_en        (ks_boram_wr_en),
+    .ks_boram_wr_data      (ks_boram_wr_data),
+    .ks_boram_wr_pid       (ks_boram_wr_pid),
+    .ks_boram_wr_parity    (ks_boram_wr_parity),
 
-    .boram_rd_pid       (boram_rd_pid),
-    .boram_rd_vld       (boram_rd_vld),
-    .boram_rd_rdy       (boram_rd_rdy),
-    .boram_rd_parity    (boram_rd_parity),
+    .ks_boram_corr_wr_en   (ks_boram_corr_wr_en),
+    .ks_boram_corr_wr_data (ks_boram_corr_wr_data),
+    .ks_boram_corr_wr_pid  (ks_boram_corr_wr_pid),
 
-    .boram_sxt_data     (boram_sxt_data),
-    .boram_sxt_data_vld (boram_sxt_data_vld),
-    .boram_sxt_data_rdy (boram_sxt_data_rdy)
+    .boram_rd_pid          (boram_rd_pid),
+    .boram_rd_vld          (boram_rd_vld),
+    .boram_rd_rdy          (boram_rd_rdy),
+    .boram_rd_parity       (boram_rd_parity),
+
+    .boram_sxt_data        (boram_sxt_data),
+    .boram_sxt_data_vld    (boram_sxt_data_vld),
+    .boram_sxt_data_rdy    (boram_sxt_data_rdy)
   );
 
 // ============================================================================================== --
@@ -116,52 +147,41 @@ module tb_pep_mmacc_body_ram;
 // ============================================================================================== --
 // Write LWE randomly.
 // Keep track that the LWE has been read, to write again.
-// States:
-// 'b10 // Write First data
-// 'b01 // Write 2nd data
-// 'b00 // all writes done
-// 'b11 // rd command sent => do not write anymore
-  logic [TOTAL_PBS_NB-1:0][1:0] wr_enable;
-  logic [TOTAL_PBS_NB-1:0][1:0] wr_enableD;
+  ks_coeff_t    ks_lwe_a      [TOTAL_PBS_NB-1:0];
+  ks_coeff_t    prev_ks_lwe_a [TOTAL_PBS_NB-1:0];
+  ks_corr_t     prev_corr_acc [TOTAL_PBS_NB-1:0];
 
-  logic                    rd_done;
-  logic [PID_W-1:0]        rd_done_pid;
+  state_t wr_enable  [TOTAL_PBS_NB-1:0];
+  state_t wr_enableD [TOTAL_PBS_NB-1:0];
 
-  logic                    wr_done;
-  logic [PID_W-1:0]        wr_done_pid;
+ logic rd_done;
+ pid_t rd_done_pid;
+
+ logic wr_done;
+ pid_t wr_done_pid;
 
   always_comb
     for (int i=0; i<TOTAL_PBS_NB; i=i+1)
-      wr_enableD[i] = (boram_rd_vld && boram_rd_rdy && (boram_rd_pid == i) && wr_enable[i]==2'b01) ? 2'b11 :
-                      wr_done && (wr_done_pid==i) ? wr_enable[i] >> 1:
-                      rd_done && (rd_done_pid==i) ? 2'b10 : wr_enable[i];
+      wr_enableD[i] = (boram_rd_vld && boram_rd_rdy && (boram_rd_pid == pid_t'(i)) && wr_enable[i]==WRITE_2ND) ? RD_SENT :
+                      wr_done && (wr_done_pid==pid_t'(i)) ? state_t'(wr_enable[i] >> 1):
+                      rd_done && (rd_done_pid==pid_t'(i)) ? WRITE_FIRST : wr_enable[i];
 
-  always_ff @(posedge clk)
-    if (!s_rst_n) wr_enable <= {TOTAL_PBS_NB{2'b10}};
-    else          wr_enable <= wr_enableD;
-
-  // Keep track of data value
-  logic [LWE_COEF_W-1:0] lwe_a [TOTAL_PBS_NB-1:0];
-  logic [LWE_COEF_W-1:0] prev_lwe_a [TOTAL_PBS_NB-1:0];
-
-  always_ff @(posedge clk)
-    if (ks_boram_wr_en)
-      lwe_a[ks_boram_wr_pid] <= ks_boram_wr_data;
-
-  always_ff @(posedge clk)
-    if (rd_done)
-      prev_lwe_a[rd_done_pid] <= lwe_a[rd_done_pid];
+  generate for (genvar i = 0; i < TOTAL_PBS_NB; i++) begin: gen_wr_enable
+    always_ff @(posedge clk)
+      if (!s_rst_n) wr_enable[i] <= WRITE_FIRST;
+      else          wr_enable[i] <= wr_enableD[i];
+  end endgenerate
 
   //== Write
-  logic                  wr_vld;
-  logic                  wr_rdy;
-  logic [LWE_COEF_W-1:0] wr_lwe;
-  logic                  wr_parity;
+  logic      wr_vld;
+  logic      wr_rdy;
+  ks_coeff_t wr_lwe;
+  logic      wr_parity;
   stream_source
   #(
     .FILENAME   ("random"),
     .DATA_TYPE  ("ascii_hex"),
-    .DATA_W     (LWE_COEF_W),
+    .DATA_W     ($bits(ks_coeff_t)),
     .RAND_RANGE (DATA_RAND_RANGE),
     .KEEP_VLD   (0),
     .MASK_DATA  ("x")
@@ -175,7 +195,7 @@ module tb_pep_mmacc_body_ram;
     .vld        (wr_vld),
     .rdy        (wr_rdy),
 
-    .throughput (0)
+    .throughput ('0)
   );
 
   initial begin
@@ -185,14 +205,14 @@ module tb_pep_mmacc_body_ram;
     @(posedge clk) source_wr.start(0);
   end
 
-  logic [PID_W-1:0] rand_pid;
+  pid_t rand_pid;
   always_ff @(posedge clk)
-    rand_pid    <= $urandom_range(0,TOTAL_PBS_NB-1);
+    rand_pid <= pid_t'($urandom_range(0,TOTAL_PBS_NB-1));
 
   assign ks_boram_wr_pid    = rand_pid;
   assign ks_boram_wr_parity = wr_parity;
-  //assign ks_boram_wr_data = (prev_lwe_a[ks_boram_wr_pid] === wr_lwe) ? wr_lwe + 1 : wr_lwe; // === take X into account
-  assign ks_boram_wr_data = (wr_enable[ks_boram_wr_pid] == 2'b10) ? (prev_lwe_a[ks_boram_wr_pid] === wr_lwe) ? wr_lwe + 1 : wr_lwe: lwe_a[ks_boram_wr_pid];
+  //assign ks_boram_wr_data = (prev_ks_lwe_a[ks_boram_wr_pid] === wr_lwe) ? wr_lwe + 1 : wr_lwe; // === take X into account
+  assign ks_boram_wr_data = (wr_enable[ks_boram_wr_pid] == WRITE_FIRST) ? (prev_ks_lwe_a[ks_boram_wr_pid] === wr_lwe) ? wr_lwe + ks_coeff_t'(1) : wr_lwe: ks_lwe_a[ks_boram_wr_pid];
   assign ks_boram_wr_en   = wr_vld & ^wr_enable[ks_boram_wr_pid];
   assign wr_rdy           = ^wr_enable[ks_boram_wr_pid];
   assign wr_done          = ks_boram_wr_en;
@@ -208,26 +228,98 @@ module tb_pep_mmacc_body_ram;
   logic [TOTAL_PBS_NB-1:0] wr_parity_a;
   logic [TOTAL_PBS_NB-1:0] wr_parity_aD;
 
-  assign wr_parity = (wr_enable[ks_boram_wr_pid] == 2'b10) ^ wr_parity_a[ks_boram_wr_pid];
+  assign wr_parity = (wr_enable[ks_boram_wr_pid] == WRITE_FIRST) ^ wr_parity_a[ks_boram_wr_pid];
 
   always_comb
     for (int i=0; i<TOTAL_PBS_NB; i=i+1)
-      wr_parity_aD[i] = (ks_boram_wr_en && (ks_boram_wr_pid == i) && wr_enable[ks_boram_wr_pid] == 2'b01) ? ~wr_parity_a[i] : wr_parity_a[i]; // Update parity on 2nd writing
+      wr_parity_aD[i] = (ks_boram_wr_en && (ks_boram_wr_pid == pid_t'(i)) && wr_enable[ks_boram_wr_pid] == WRITE_2ND) ? ~wr_parity_a[i] : wr_parity_a[i]; // Update parity on 2nd writing
 
   always_ff @(posedge clk)
     if (!s_rst_n) wr_parity_a <= '0;
     else          wr_parity_a <= wr_parity_aD;
 
-  //== Read
-  logic             rd_vld;
-  logic             rd_rdy;
-  logic [PID_W-1:0] rd_add;
-  logic             rd_parity;
+// ============================================================================================== --
+// Scenario 2
+// Write the correction RAM randomly
+// ============================================================================================== --
+
+  //== Correction RAM Write
+  logic     ks_corr_wr_vld;
+  logic     ks_corr_wr_rdy;
+  ks_corr_t ks_corr_wr_lwe;
+
   stream_source
   #(
     .FILENAME   ("random"),
     .DATA_TYPE  ("ascii_hex"),
-    .DATA_W     (PID_W),
+    .DATA_W     ($bits(ks_corr_t)),
+    .RAND_RANGE (CORR_DATA_RAND_RANGE),
+    .KEEP_VLD   (0),
+    .MASK_DATA  ("x")
+  )
+  source_ks_corr_wr
+  (
+    .clk        (clk),
+    .s_rst_n    (s_rst_n),
+
+    .data       (ks_corr_wr_lwe),
+    .vld        (ks_corr_wr_vld),
+    .rdy        (ks_corr_wr_rdy),
+
+    .throughput ('0)
+  );
+
+  initial begin
+    void'(source_ks_corr_wr.open());
+    wait(s_rst_n);
+    @(posedge clk) source_ks_corr_wr.start(0);
+  end
+
+  ks_block_cnt_t ks_corr_wr_cnt [TOTAL_PBS_NB];
+  ks_corr_t         ks_corr_acc [TOTAL_PBS_NB];
+
+  generate for (genvar i = 0; i < TOTAL_PBS_NB; i++) begin: gen_ks_corr_wr_cnt
+    always_ff @(posedge clk) begin
+      if(!s_rst_n || (rd_done && rd_done_pid == pid_t'(i))) begin
+        ks_corr_wr_cnt[i] <= '0;
+        ks_corr_acc[i]    <= '0;
+      end else if(ks_boram_corr_wr_en && ks_boram_corr_wr_pid == pid_t'(i)) begin
+        ks_corr_wr_cnt[i] <= ks_corr_wr_cnt[i] + ks_block_cnt_t'(1);
+        ks_corr_acc[i]    <= ks_corr_acc[i] + ks_boram_corr_wr_data;
+      end
+    end
+  end endgenerate
+
+  pid_t rand_ks_corr_pid;
+  always_ff @(posedge clk)
+    rand_ks_corr_pid <= pid_t'($urandom_range(0,TOTAL_PBS_NB-1));
+
+  assign ks_boram_corr_wr_pid  = rand_ks_corr_pid;
+  assign ks_boram_corr_wr_data = ks_corr_wr_lwe;
+  assign ks_corr_wr_rdy        = (ks_corr_wr_cnt[ks_boram_corr_wr_pid] < ks_block_cnt_t'(KS_BLOCK_COL_NB));
+  assign ks_boram_corr_wr_en   = ks_corr_wr_vld & ks_corr_wr_rdy;
+
+  // Keep track of data value
+  always_ff @(posedge clk)
+    if (ks_boram_wr_en)
+      ks_lwe_a[ks_boram_wr_pid] <= ks_boram_wr_data;
+
+  always_ff @(posedge clk)
+    if (rd_done) begin
+      prev_corr_acc[rd_done_pid] <= ks_corr_acc[rd_done_pid];
+      prev_ks_lwe_a[rd_done_pid] <= ks_lwe_a[rd_done_pid];
+    end
+
+  //== Read
+ logic rd_vld;
+ logic rd_rdy;
+ pid_t rd_add;
+ logic rd_parity;
+  stream_source
+  #(
+    .FILENAME   ("random"),
+    .DATA_TYPE  ("ascii_hex"),
+    .DATA_W     ($bits(pid_t)),
     .RAND_RANGE (DATA_RAND_RANGE),
     .KEEP_VLD   (0),
     .MASK_DATA  ("x")
@@ -241,7 +333,7 @@ module tb_pep_mmacc_body_ram;
     .vld        (rd_vld),
     .rdy        (rd_rdy),
 
-    .throughput (0)
+    .throughput ('0)
   );
 
   initial begin
@@ -251,9 +343,9 @@ module tb_pep_mmacc_body_ram;
     @(posedge clk) source_rd.start(SAMPLE_NB);
   end
 
-  logic [PID_W-1:0] rd_pid_q [$];
+  pid_t rd_pid_q [$];
   always_ff @(posedge clk) begin
-    if (ks_boram_wr_en && wr_enable[ks_boram_wr_pid] == 2'b10) begin
+    if (ks_boram_wr_en && wr_enable[ks_boram_wr_pid] == WRITE_FIRST) begin
       rd_pid_q.push_back(ks_boram_wr_pid);
     end
     if (boram_rd_vld && boram_rd_rdy) begin
@@ -269,11 +361,11 @@ module tb_pep_mmacc_body_ram;
   end
 
   assign boram_rd_vld = rd_vld & rd_mask;
-  assign boram_rd_pid = rd_add % TOTAL_PBS_NB;
+  assign boram_rd_pid = pid_t'(rd_add % TOTAL_PBS_NB);
   assign boram_rd_parity  = rd_parity;
   assign rd_rdy           = boram_rd_rdy & rd_mask;
 
-  logic [PID_W-1:0] rd_add_q [$];
+  pid_t rd_add_q [$];
   always_ff @(posedge clk)
     if (boram_rd_vld && boram_rd_rdy)
       rd_add_q.push_back(boram_rd_pid);
@@ -286,7 +378,7 @@ module tb_pep_mmacc_body_ram;
 
   always_comb
     for (int i=0; i<TOTAL_PBS_NB; i=i+1)
-      rd_parity_aD[i] = (boram_rd_vld && boram_rd_rdy && boram_rd_pid == i) ? ~rd_parity_a[i] : rd_parity_a[i];
+      rd_parity_aD[i] = (boram_rd_vld && boram_rd_rdy && boram_rd_pid == pid_t'(i)) ? ~rd_parity_a[i] : rd_parity_a[i];
 
   always_ff @(posedge clk)
     if (!s_rst_n) rd_parity_a <= '0;
@@ -315,7 +407,7 @@ module tb_pep_mmacc_body_ram;
       .rdy        (boram_sxt_data_rdy),
 
       .error      (), // UNUSED
-      .throughput (0)
+      .throughput ('0)
   );
 
   initial begin
@@ -323,6 +415,9 @@ module tb_pep_mmacc_body_ram;
     sink_rdata.start(0);
   end
 
+  function modsw_coeff_t mod_switch(input real value);
+    return $floor(value / (2**(MOD_KSK_W-LWE_COEF_W)) + 0.5);
+  endfunction
 
   always_ff @(posedge clk)
     if (!s_rst_n) begin
@@ -332,24 +427,25 @@ module tb_pep_mmacc_body_ram;
     else begin
       rd_done    <= 1'b0;
       if (boram_sxt_data_vld && boram_sxt_data_rdy) begin
-        logic [PID_W-1:0]      ref_pid;
-        logic [LWE_COEF_W-1:0] ref_lwe;
-        logic [LWE_COEF_W-1:0] prev_lwe;
-        ref_pid  = rd_add_q.pop_front();
-        ref_lwe  = lwe_a[ref_pid];
-        prev_lwe = prev_lwe_a[ref_pid];
+        pid_t         ref_pid;
+        modsw_coeff_t ref_lwe;
+        modsw_coeff_t prev_lwe;
 
-        assert(ref_lwe == boram_sxt_data)
-        else begin
+        ref_pid  = rd_add_q.pop_front();
+        prev_lwe = mod_switch(real'(prev_ks_lwe_a[ref_pid]) - real'(prev_corr_acc[ref_pid]) * KS_KEY_MEAN_R);
+        ref_lwe  = mod_switch(real'(ks_lwe_a[ref_pid]) - real'(ks_corr_acc[ref_pid]) * KS_KEY_MEAN_R);
+
+        // Not using assert because it causes lint warnings about side effects
+        if(ref_lwe != boram_sxt_data) begin
           $display("%t > ERROR: Data mismatch pid=%0d exp=0x%0x seen=0x%0x",$time,ref_pid,ref_lwe,boram_sxt_data);
           error_data <= 1'b1;
         end
 
-        assert(prev_lwe !== boram_sxt_data)
-        else begin
-          $display("%t > ERROR: Data match previous value pid=%0d exp=0x%0x seen=0x%0x",$time,ref_pid,ref_lwe,boram_sxt_data);
-          error_data <= 1'b1;
-        end
+        // This check has a chance to not pass randomly with correct behavior
+        //if(prev_lwe === boram_sxt_data) begin
+        //  $display("%t > ERROR: Data match previous value pid=%0d exp=0x%0x seen=0x%0x",$time,ref_pid,prev_lwe,boram_sxt_data);
+        //  error_data <= 1'b1;
+        //end
 
         rd_done     <= 1'b1;
         rd_done_pid <= ref_pid;

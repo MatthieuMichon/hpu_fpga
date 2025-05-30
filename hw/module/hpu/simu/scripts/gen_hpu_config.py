@@ -29,6 +29,9 @@ if __name__ == '__main__':
     parser.add_argument('-o',  dest='outfile',      type=str, help="Output filename.", required=True)
     parser.add_argument('--cust_iop',  dest='cust_iop', action='append', type=str, help="Custom IOP", default=[])
     parser.add_argument('-f',  dest='force',        help="Overwrite if file already exists", action="store_true", default=False)
+    parser.add_argument('-m',  dest='mod_switch_mean_comp',
+                        help="Sets whether to use mean compensation in the mockup",
+                        type=lambda x: "true" if bool(x) else "false", default=False)
 
     args = parser.parse_args()
 
@@ -49,10 +52,8 @@ if __name__ == '__main__':
         else:
             cust_iop[match["id"]] = f
 
-    config = {"integer_w"    : args.integer_w,
-              "regmap_file" : args.regmap_file,
-              "cust_iop" : cust_iop,
-             }
+    config = dict(args.__dict__)
+    config.update({ "cust_iop" : cust_iop, })
 
     template = template_env.get_template(TEMPLATE_NAME)
     file_path = args.outfile

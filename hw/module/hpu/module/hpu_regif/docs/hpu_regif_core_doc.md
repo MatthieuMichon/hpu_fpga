@@ -1,6 +1,6 @@
 # HPU_REGIF_CORE documentation
-**Date**: 2025-04-24
-**Tool Version**: c055357dd4d8749d8e23efd7e8cd8bd599e105de
+**Date**: 2025-06-12
+**Tool Version**: 9bab20def30cfd61d2ed40616bd05d08a747ddf4
 
 ## RegisterMap Overview
 
@@ -30,6 +30,7 @@ Below is a summary of all the registers in the current register map:
 | [info](#section-info) | 0x10 | 0x4c | RTL architecture parameters |
 | [hbm_axi4_addr_1in3](#section-hbm-axi4-addr-1in3) | 0x1000 | 0xa0 | HBM AXI4 connection address offset |
 | [bpip](#section-bpip) | 0x2000 | 0x8 | BPIP configuration |
+| [keyswitch](#section-keyswitch) | 0x3000 | 0x4 | Keyswitch Configuration |
 | [entry_prc_1in3](#section-entry-prc-1in3) | 0x10000 | 0x10 | entry_prc_1in3 section with known value used for debug. |
 | [status_1in3](#section-status-1in3) | 0x10010 | 0x4 | HPU status of part 1in3 |
 | [ksk_avail](#section-ksk-avail) | 0x11000 | 0x8 | KSK availability configuration |
@@ -419,9 +420,9 @@ Register pe_properties contains following Sub-fields:
 
 | Field Name | Offset_b | Size_b | Default      | Description   |
 |-----------:|:--------:|:------:|:------------:|:--------------|
-| pea_regf_period      | 0 | 8 |PEA_REGF_PERIOD| Number of cycles between 2 consecutive data transfert between PEA and regfile |
-| pem_regf_period      | 8 | 8 |PEM_REGF_PERIOD| Number of cycles between 2 consecutive data transfert between PEM and regfile |
-| pep_regf_period      | 16 | 8 |PEP_REGF_PERIOD| Number of cycles between 2 consecutive data transfert between PEP and regfile |
+| pea_regf_period      | 0 | 8 |PEA_REGF_PERIOD| Number of cycles between 2 consecutive data transfer between PEA and regfile |
+| pem_regf_period      | 8 | 8 |PEM_REGF_PERIOD| Number of cycles between 2 consecutive data transfer between PEM and regfile |
+| pep_regf_period      | 16 | 8 |PEP_REGF_PERIOD| Number of cycles between 2 consecutive data transfer between PEP and regfile |
 | alu_nb      | 24 | 8 |PEA_ALU_NB| Number of coefficients processed in parallel in pe_alu |
 
 
@@ -1266,6 +1267,45 @@ Register use contains following Sub-fields:
 - **Offset**: 0x2004
 - **Default**: 4294967295
 
+
+
+
+---
+
+
+
+
+## Section keyswitch
+
+### Register Overview
+
+Below is a summary of all the registers in the current section keyswitch:
+
+| Name             | Offset | Access | Description |
+|-----------------:|:------:|:------:|:------------|
+| [config](#register-keyswitchconfig) | 0x3000 | RW |  (1) Use use modulus switching mean compensation. (default), (0) Don't use modulus switching mean compensation. |
+
+
+---
+
+
+### Register keyswitch.config
+
+- **Description**: (1) Use use modulus switching mean compensation. (default), (0) Don't use modulus switching mean compensation.
+- **Owner**: User
+- **Read Access**: Read
+- **Write Access**: Write
+- **Offset**: 0x3000
+- **Default**: C.f. fields
+
+
+#### Field Details
+
+Register config contains following Sub-fields:
+
+| Field Name | Offset_b | Size_b | Default      | Description   |
+|-----------:|:--------:|:------:|:------------:|:--------------|
+| mod_switch_mean_comp      | 0 | 1 |1| Controls whether to use modulus switch mean compensation. |
 
 
 

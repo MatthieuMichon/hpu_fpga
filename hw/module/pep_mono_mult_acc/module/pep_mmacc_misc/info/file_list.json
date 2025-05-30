@@ -24,7 +24,8 @@
     "dependency_dir": [
         "hw/common_lib/fifo",
         "hw/module/param",
-        "hw/module/pe_pbs/module/pep_common"
+        "hw/module/pe_pbs/module/pep_common",
+        "hw/module/pep_key_switch/module/pep_ks_common"
     ],
     "include_dir": []
 }

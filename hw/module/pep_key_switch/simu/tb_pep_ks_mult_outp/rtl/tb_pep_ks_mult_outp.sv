@@ -212,6 +212,8 @@ module tb_pep_ks_mult_outp;
     .br_bfifo_pid          (/*UNUSED*/), // Not tested here
     .br_bfifo_parity       (/*UNUSED*/), // Not tested here
 
+    .mod_switch_mean_comp  (1'b0),
+
     .reset_cache           (reset_cache),
     .outp_ks_loop_done_mh  (outp_ks_loop_done_mh),
     .inc_ksk_rd_ptr        (inc_ksk_rd_ptr      )

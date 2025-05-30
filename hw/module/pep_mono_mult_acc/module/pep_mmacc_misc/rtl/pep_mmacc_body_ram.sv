@@ -12,31 +12,45 @@
 module pep_mmacc_body_ram
   import param_tfhe_pkg::*;
   import pep_common_param_pkg::*;
+  import pep_ks_common_param_pkg::*;
 (
-  input                         clk,        // clock
-  input                         s_rst_n,    // synchronous reset
-  input                         reset_cache,
+  input                             clk,        // clock
+  input                             s_rst_n,    // synchronous reset
+  input                             reset_cache,
 
-  input  logic                  ks_boram_wr_en,
-  input  logic [LWE_COEF_W-1:0] ks_boram_wr_data,
-  input  logic [PID_W-1:0]      ks_boram_wr_pid,
-  input  logic                  ks_boram_wr_parity,
+  input  logic                      ks_boram_wr_en,
+  input  logic [MOD_KSK_W-1:0]      ks_boram_wr_data,
+  input  logic [PID_W-1:0]          ks_boram_wr_pid,
+  input  logic                      ks_boram_wr_parity,
 
-  input  logic [PID_W-1:0]      boram_rd_pid,
-  input  logic                  boram_rd_parity,
-  input  logic                  boram_rd_vld,
-  output logic                  boram_rd_rdy,
+  input  logic                      ks_boram_corr_wr_en,
+  input  logic [KS_MAX_ERROR_W-1:0] ks_boram_corr_wr_data,
+  input  logic [PID_W-1:0]          ks_boram_corr_wr_pid,
 
-  output logic [LWE_COEF_W-1:0] boram_sxt_data,
-  output logic                  boram_sxt_data_vld,
-  input  logic                  boram_sxt_data_rdy
+  input  logic [PID_W-1:0]          boram_rd_pid,
+  input  logic                      boram_rd_parity,
+  input  logic                      boram_rd_vld,
+  output logic                      boram_rd_rdy,
+
+  output logic [LWE_COEF_W-1:0]     boram_sxt_data,
+  output logic                      boram_sxt_data_vld,
+  input  logic                      boram_sxt_data_rdy
 );
+
+// ============================================================================================== --
+// Local parameters
+// ============================================================================================== --
+  localparam int unsigned BR_CORR_W   = MOD_KSK_W + KS_KEY_MEAN_F;
+  localparam int unsigned RD_COUNT_NB = 2; // The amount of reads we accept in the pipeline
+  localparam int unsigned RD_COUNT_W  = $clog2(RD_COUNT_NB+1);
+
+  localparam logic [KS_BLOCK_COL_W-1:0] KS_BLOCK_COL_NB_M1 = KS_BLOCK_COL_W'(KS_BLOCK_COL_NB-1);
 
 // ============================================================================================= --
 // Input pipe
 // ============================================================================================= --
   logic                  ram_wr_en;
-  logic [LWE_COEF_W-1:0] ram_wr_data;
+  logic [MOD_KSK_W-1:0]  ram_wr_data;
   logic [PID_W-1:0]      ram_wr_pid;
   logic                  ram_wr_parity;
 
@@ -48,6 +62,20 @@ module pep_mmacc_body_ram
     ram_wr_data   <= ks_boram_wr_data;
     ram_wr_parity <= ks_boram_wr_parity;
     ram_wr_pid    <= ks_boram_wr_pid;
+  end
+
+  // Correction signals
+  logic                      corr_ram_wr_en;
+  logic [KS_MAX_ERROR_W-1:0] corr_ram_wr_data;
+  logic [PID_W-1:0]          corr_ram_wr_pid;
+
+  always_ff @(posedge clk)
+    if (!s_rst_n) corr_ram_wr_en <= 1'b0;
+    else          corr_ram_wr_en <= ks_boram_corr_wr_en;
+
+  always_ff @(posedge clk) begin
+    corr_ram_wr_data <= ks_boram_corr_wr_data;
+    corr_ram_wr_pid  <= ks_boram_corr_wr_pid;
   end
 
   logic [PID_W-1:0] s0_rd_pid;
@@ -76,10 +104,13 @@ module pep_mmacc_body_ram
 
 // ============================================================================================= --
 // Output pipe
+// (Note: Because a read takes several cycles, the depth of the final output FIFO should
+// have been a bit bigger to compensate for the round-trip delay of the ready signal and maintain
+// throughput. However, there's no need to maintain throughput here, so we'll save some memory.
 // ============================================================================================= --
-  logic [LWE_COEF_W-1:0] s0_out_data;
-  logic                  s0_out_vld;
-  logic                  s0_out_rdy;
+  logic [LWE_COEF_W-1:0] s2_out_data;
+  logic                  s2_out_vld;
+  logic                  s2_out_rdy;
 
   fifo_element #(
     .WIDTH          (LWE_COEF_W),
@@ -91,54 +122,75 @@ module pep_mmacc_body_ram
     .clk     (clk),
     .s_rst_n (s_rst_n),
 
-    .in_data (s0_out_data),
-    .in_vld  (s0_out_vld),
-    .in_rdy  (s0_out_rdy),
+    .in_data (s2_out_data),
+    .in_vld  (s2_out_vld),
+    .in_rdy  (s2_out_rdy),
 
     .out_data(boram_sxt_data),
     .out_vld (boram_sxt_data_vld),
     .out_rdy (boram_sxt_data_rdy)
   );
 
+// pragma translate_off
+  always_ff @(posedge clk)
+    if (s_rst_n)
+      assert_out_fifo_rdy:
+      assert((s2_out_vld && s2_out_rdy) || !s2_out_vld)
+      else $fatal(1, "%t > : Output fifo was written without being ready.",$time);
+// pragma translate_on
+
 // ============================================================================================= --
 // RAM
 // ============================================================================================= --
   // Read port
-  logic                                    ram_rd_en;
-  logic [PID_W-1:0]                        ram_rd_pid;
-  logic [LWE_COEF_W-1:0]                   ram_rd_data;
-  logic                                    ram_rd_present;
-  logic                                    ram_rd_parity;
+  logic                 ram_rd_en;
+  logic [PID_W-1:0]     ram_rd_pid;
+  logic [MOD_KSK_W-1:0] ram_data;      // Old value at the write address
+  logic [MOD_KSK_W-1:0] ram_rd_data;   // Read value
+  logic                 ram_parity;    // Old value at the write address
+  logic                 ram_rd_parity; // Read value
 
-  logic [TOTAL_PBS_NB-1:0][LWE_COEF_W-1:0] ram;
-  logic [TOTAL_PBS_NB-1:0]                 ram_present;
-  logic [TOTAL_PBS_NB-1:0]                 ram_parity;
+  logic                 ram_present_wen;
+  logic [PID_W-1:0]     ram_present_wadd;
+  logic                 ram_present;     // Old value at the write address
+  logic                 ram_presentD;    // New value at the write address
+  logic                 ram_rd_present;  // Value read
 
-  logic [TOTAL_PBS_NB-1:0][LWE_COEF_W-1:0] ramD;
-  logic [TOTAL_PBS_NB-1:0]                 ram_presentD;
-  logic [TOTAL_PBS_NB-1:0]                 ram_parityD;
+  ram_wrapper_NR1W #(
+    .WIDTH      ( MOD_KSK_W + 1 ) ,
+    .DEPTH      ( TOTAL_PBS_NB  ) ,
+    .RD_PORT_NB ( 2             )
+  ) body_ram (
+    .clk     ( clk                                                     ) ,
+    .s_rst_n ( s_rst_n                                                 ) ,
+    .wr_en   ( ram_wr_en                                               ) ,
+    .wr_add  ( ram_wr_pid                                              ) ,
+    .wr_data ( {ram_wr_data, ram_wr_parity}                            ) ,
+    .rd_en   ( '{1'b1, 1'b1}                                           ) ,
+    .rd_add  ( '{ram_rd_pid, ram_wr_pid}                               ) ,
+    .rd_data ( '{{ram_rd_data, ram_rd_parity}, {ram_data, ram_parity}} )
+  );
 
-  always_comb
-    for (int i=0; i<TOTAL_PBS_NB; i=i+1) begin
-      ramD[i]         = (ram_wr_en && ram_wr_pid==i) ? ram_wr_data : ram[i];
-      ram_parityD[i]  = (ram_wr_en && ram_wr_pid==i) ? ram_wr_parity : ram_parity[i];
-      ram_presentD[i] = (ram_rd_en && ram_rd_pid==i) ? 1'b0 : // Read has priority
-                        (ram_wr_en && ram_wr_pid==i) ? 1'b1 : ram_present[i];
-    end
+  ram_wrapper_NR1W #(
+    .WIDTH      ( 1'b1         ) ,
+    .DEPTH      ( TOTAL_PBS_NB ) ,
+    .RD_PORT_NB ( 2            ) ,
+    .HAS_RST    ( 1'b1         ) ,
+    .RST_VAL    ( 1'b0         )
+  ) present_ram (
+    .clk     ( clk                            ) ,
+    .s_rst_n ( s_rst_n || reset_cache         ) ,
+    .wr_en   ( ram_present_wen                ) ,
+    .wr_add  ( ram_present_wadd               ) ,
+    .wr_data ( ram_presentD                   ) ,
+    .rd_en   ( '{1'b1, 1'b1}                  ) ,
+    .rd_add  ( '{ram_rd_pid, ram_wr_pid}      ) ,
+    .rd_data ( '{ram_rd_present, ram_present} )
+  );
 
-  always_ff @(posedge clk)
-    if (!s_rst_n || reset_cache) ram_present <= '0;
-    else                         ram_present <= ram_presentD;
-
-  always_ff @(posedge clk) begin
-    ram        <= ramD;
-    ram_parity <= ram_parityD;
-  end
-
-  // Fits timing because TOTAL_PBS_NB order of magnitude is 32/64
-  assign ram_rd_data    = ram[ram_rd_pid];
-  assign ram_rd_parity  = ram_parity[ram_rd_pid];
-  assign ram_rd_present = ram_present[ram_rd_pid];
+  assign ram_present_wadd = ram_wr_en ? ram_wr_pid : ram_rd_pid ; // Write has priority
+  assign ram_presentD     = ram_wr_en;
+  assign ram_present_wen  = ram_wr_en || ram_rd_en;
 
 // pragma translate_off
   // Remove parity check, because, it could occur in IPIP, the data is written twice,
@@ -149,18 +201,21 @@ module pep_mmacc_body_ram
   //
   // parity signals are here for the debug.
   always_ff @(posedge clk)
-    if (ram_wr_en && ram_present[ram_wr_pid]) begin
-      assert(ram[ram_wr_pid] == ram_wr_data)
+    if (ram_wr_en && ram_present) begin
+      assert_body_ram_rewrite:
+      assert(ram_data == ram_wr_data)
       else begin
         $display("%t > WARNING: Rewrite data in body_ram at pid=%0d, whereas data already present with another value.",$time,ram_wr_pid);
       end
 
-      assert(ram_parity[ram_wr_pid] != ram_wr_parity)
+      assert_body_ram_parity:
+      assert(ram_parity != ram_wr_parity)
       else begin
         $display("%t > WARNING: Rewrite data in body_ram at pid=%0d, whereas data already present with same parity.",$time,ram_wr_pid);
       end
 
-      assert(!ram_rd_en || ram_present[ram_rd_pid])
+      assert_body_ram_present:
+      assert(!ram_rd_en || ram_rd_present)
       else begin
         $fatal(1,"%t > ERROR: Read data in body_ram at pid=%0d, whereas data not present.",$time,ram_rd_pid);
       end
@@ -168,13 +223,158 @@ module pep_mmacc_body_ram
 // pragma translate_on
 
 // ============================================================================================= --
+// Correction RAM
+// ============================================================================================= --
+  logic [KS_MAX_ERROR_W-1:0] corr_data;        // Old value at the write address
+  logic [KS_MAX_ERROR_W-1:0] corr_dataD;       // New write address
+  logic [KS_MAX_ERROR_W-1:0] corr_ram_rd_data; // Read value
+
+  logic [KS_BLOCK_COL_W-1:0] corr_cnt;         // Old value at the write address
+  logic [KS_BLOCK_COL_W-1:0] corr_cntD;        // New value at the write address
+  logic [KS_BLOCK_COL_W-1:0] corr_cnt_rd_data; // Read value
+
+  logic                      corr_present;
+  logic                      corr_presentD;
+  logic                      corr_present_rd_data;
+  logic                      corr_present_wen;
+  logic [PID_W-1:0]          corr_present_wadd;
+
+  logic                      corr_rd_avail;
+
+  ram_wrapper_NR1W #(
+    .WIDTH      ( KS_BLOCK_COL_W + KS_MAX_ERROR_W ) ,
+    .DEPTH      ( TOTAL_PBS_NB                    ) ,
+    .RD_PORT_NB ( 2                               )
+  ) corr_ram (
+    .clk     ( clk                                                            ) ,
+    .s_rst_n ( s_rst_n                                                        ) ,
+    .wr_en   ( corr_ram_wr_en                                                 ) ,
+    .wr_add  ( corr_ram_wr_pid                                                ) ,
+    .wr_data ( {corr_cntD, corr_dataD}                                        ) ,
+    .rd_en   ( '{1'b1, 1'b1}                                                  ) ,
+    .rd_add  ( '{corr_ram_wr_pid, ram_rd_pid}                                 ) ,
+    .rd_data ( '{{corr_cnt, corr_data}, {corr_cnt_rd_data, corr_ram_rd_data}} )
+  );
+
+  ram_wrapper_NR1W #(
+    .WIDTH      ( 1'b1         ) ,
+    .DEPTH      ( TOTAL_PBS_NB ) ,
+    .RD_PORT_NB ( 2            ) ,
+    .HAS_RST    ( 1'b1         ) ,
+    .RST_VAL    ( 1'b0         )
+  ) corr_present_ram (
+    .clk     ( clk                                   ) ,
+    .s_rst_n ( s_rst_n || reset_cache                ) ,
+    .wr_en   ( corr_present_wen                      ) ,
+    .wr_add  ( corr_present_wadd                     ) ,
+    .wr_data ( corr_presentD                         ) ,
+    .rd_en   ( '{1'b1, 1'b1}                         ) ,
+    .rd_add  ( '{corr_ram_wr_pid, ram_rd_pid}        ) ,
+    .rd_data ( '{corr_present, corr_present_rd_data} )
+  );
+
+  assign corr_dataD        = corr_present ? corr_ram_wr_data + corr_data : corr_ram_wr_data;
+  assign corr_cntD         = corr_present ? KS_BLOCK_COL_W'(corr_cnt + 1'b1) : '0;
+  assign corr_presentD     = corr_ram_wr_en;
+  assign corr_present_wadd = corr_ram_wr_en ? corr_ram_wr_pid : ram_rd_pid ; // Write has priority
+  assign corr_present_wen  = corr_ram_wr_en || ram_rd_en;
+
+  assign corr_rd_avail     = corr_present_rd_data & (corr_cnt_rd_data == KS_BLOCK_COL_NB_M1);
+
+// pragma translate_off
+  always_ff @(posedge clk)
+    if (corr_ram_wr_en && corr_present) begin
+      assert_corr_ram_rewrite:
+      assert(corr_cnt < KS_BLOCK_COL_NB_M1)
+      else $fatal(1, "%t > ERROR: Correction RAM re-written at pid=%0d.",$time,corr_ram_wr_pid);
+
+      assert_unfinished_read:
+      assert(!ram_rd_en || (corr_cnt_rd_data == KS_BLOCK_COL_NB_M1))
+      else $fatal(1,"%t > ERROR: Unfinished data read at pid=%0d.",$time,ram_rd_pid);
+    end
+// pragma translate_on
+
+// ============================================================================================= --
+// RAM output stage
+// This is needed to close timing on the mean compensation logic
+// ============================================================================================= --
+  logic                      s1_ram_rd_en;
+  logic [MOD_KSK_W-1:0]      s1_ram_rd_data;
+  logic [KS_MAX_ERROR_W-1:0] s1_corr_ram_rd_data;
+
+  always_ff @(posedge clk) begin
+    if(!s_rst_n) begin
+      s1_ram_rd_en <= '0;
+    end else begin
+      s1_ram_rd_en <= ram_rd_en;
+    end
+  end
+
+  always_ff @(posedge clk) begin
+    s1_corr_ram_rd_data <= corr_ram_rd_data;
+    s1_ram_rd_data      <= ram_rd_data;
+  end
+
+// ============================================================================================= --
+// Final correction
+// ============================================================================================= --
+  // The correction here should be: b - mean(s) * sum(mod_switch_err), where s is the binary key
+  // switching key and mod_switch_err the vector of mod_switch_error factors of doing modulus
+  // switching on mask elements.
+  // The key mean value is encoded in fixed point. This part of the code will convert b to the fixed
+  // point format before subtraction.
+
+  logic [BR_CORR_W-1:0] s1_br_corrected;
+  logic [BR_CORR_W-1:0] s1_corr_xtend;
+
+  generate if (BR_CORR_W > KS_MAX_ERROR_W) begin: with_signed_ext
+    assign s1_corr_xtend = {
+      {(BR_CORR_W-KS_MAX_ERROR_W){s1_corr_ram_rd_data[KS_MAX_ERROR_W-1]}},
+                                  s1_corr_ram_rd_data[KS_MAX_ERROR_W-1:0]
+      };
+  end else if (BR_CORR_W == KS_MAX_ERROR_W) begin: no_sign_ext
+    assign s1_corr_xtend = s1_corr_ram_rd_data;
+  end else begin: invalid_sign_ext
+    $fatal(1, "The accumulation mod switch error (%0d) cannot be greater than the final compensated B width (%0d)",
+              KS_MAX_ERROR_W, BR_CORR_W);
+  end endgenerate
+
+  assign s1_br_corrected = (BR_CORR_W'(s1_ram_rd_data) << KS_KEY_MEAN_F)
+                         - s1_corr_xtend * BR_CORR_W'(KS_KEY_MEAN);
+
+// ============================================================================================= --
+// Final mod switch. br_corrected is in fixed point format, but that is irrelevant in the
+// modulus switch if we pick exactly LWE_COEF_W bits starting from the MSB.
+// ============================================================================================= --
+  always_ff @(posedge clk) begin
+    if(!s_rst_n) begin
+      s2_out_vld <= '0;
+    end else begin
+      s2_out_vld <= s1_ram_rd_en;
+    end
+  end
+
+  always_ff @(posedge clk) begin
+    s2_out_data <= s1_br_corrected[BR_CORR_W-1-:LWE_COEF_W] + s1_br_corrected[BR_CORR_W-1-LWE_COEF_W];
+  end
+
+// ============================================================================================= --
 // READ access
 // ============================================================================================= --
+  logic [RD_COUNT_W-1:0] rd_count;
+  always_ff @(posedge clk) begin
+    if(!s_rst_n) begin
+      rd_count <= '0;
+    end else begin
+      rd_count <= rd_count + RD_COUNT_W'(ram_rd_en)
+                           - RD_COUNT_W'(boram_sxt_data_vld & boram_sxt_data_rdy);
+    end
+  end
+
   assign ram_rd_en  = s0_rd_vld & s0_rd_rdy;
   assign ram_rd_pid = s0_rd_pid;
+  assign s0_rd_rdy  = ram_rd_present & corr_rd_avail & (rd_count < RD_COUNT_W'(RD_COUNT_NB))
+                    & !corr_ram_wr_en & !ram_wr_en; // Make sure no write is occuring before
+                                                    // accepting the read
 
-  assign s0_out_vld = s0_rd_vld  & ram_rd_present;
-  assign s0_rd_rdy  = s0_out_rdy & ram_rd_present;
-
-  assign s0_out_data = ram_rd_data;
 endmodule
