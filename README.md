@@ -35,7 +35,7 @@ This repository provides everything needed to deploy and experiment with the HPU
 * Firmware for the Real-Time Processing Unit (RPU), derived from [Xilinx's AVED](https://github.com/Xilinx/AVED) – see [firmware docs](fw/arm/README.md).
 
 > [!Note]
-> HPU also needs the following softwares:
+> HPU also needs the following software:
 >
 > * The [QDMA driver](https://github.com/zama-ai/dma_ip_drivers)
 > * The [AMI driver](https://github.com/zama-ai/AVED)
@@ -349,7 +349,7 @@ We are using AMD [QDMA](https://github.com/Xilinx/dma_ip_drivers) linux driver f
 
 ```
 # from this repo
-git clone git@github.com:zama-ai/QDMA.git zama_qdma
+git clone https://github.com/zama-ai/dma_ip_drivers.git zama_qdma
 
 # before adding kernel module, let's define correctly its rights on the host machine
 sudo cp zama_qdma/scripts/42-qdma.rules /etc/udev/rules.d/
@@ -359,7 +359,7 @@ cd zama_qdma/QDMA/linux-kernel/
 make
 
 # install kernel module in your machine
-make install-mods
+sudo make install-mods
 ```
 
 ### FPGA loading
