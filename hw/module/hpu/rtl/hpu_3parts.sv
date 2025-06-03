@@ -51,7 +51,9 @@ module hpu_3parts
 )
 (
   input  logic                 prc_clk,    // process clock
+  input  logic                 prc_clk_free, // process clock, free running
   input  logic                 prc_srst_n, // synchronous reset
+  output logic                 prc_ce,     // process clock enable
 
   input  logic                 cfg_clk,    // config clock
   input  logic                 cfg_srst_n, // synchronous reset
@@ -93,83 +95,53 @@ module hpu_3parts
 // Signals
 // ============================================================================================== --
   // -------------------------------------------------------------------------------------------- --
-  //-- MMACC : main <-> subs
+  //-- NTT : ntt <-> mmacc
   // -------------------------------------------------------------------------------------------- --
-  // Feed
-  mainsubs_feed_cmd_t   in_main_subs_feed_cmd;
-  logic                 in_main_subs_feed_cmd_vld;
-  logic                 in_main_subs_feed_cmd_rdy;
+  typedef struct packed {
+    logic [PSI-1:0][R-1:0][PBS_B_W:0] data; // 2s complement
+    logic                             sob;
+    logic                             eob;
+    logic                             sog;
+    logic                             eog;
+    logic                             sol;
+    logic                             eol;
+    logic [BPBS_ID_W-1:0]             pbs_id;
+    logic                             last_pbs;
+    logic                             full_throughput;
+  } decomp_ntt_data_t;
 
-  mainsubs_feed_data_t  in_main_subs_feed_data;
-  logic                 in_main_subs_feed_data_avail;
+  typedef struct packed {
+    logic [PSI-1:0][R-1:0]            data_avail;
+    logic                             ctrl_avail;
+  } decomp_ntt_ctrl_t;
 
-  mainsubs_feed_part_t  in_main_subs_feed_part;
-  logic                 in_main_subs_feed_part_avail;
+  typedef struct packed {
+    // Mod switch
+    logic [PSI-1:0][R-1:0][MOD_Q_W-1:0] data;
+    logic                               sob;
+    logic                               eob;
+    logic                               sol;
+    logic                               eol;
+    logic                               sog;
+    logic                               eog;
+    logic [BPBS_ID_W-1:0]               pbs_id;
+  } ntt_acc_modsw_data_t;
 
-  mainsubs_feed_cmd_t   out_main_subs_feed_cmd;
-  logic                 out_main_subs_feed_cmd_vld;
-  logic                 out_main_subs_feed_cmd_rdy;
+  typedef struct packed {
+    // Mod switch
+    logic [PSI-1:0][R-1:0]              data_avail;
+    logic                               ctrl_avail;
+  } ntt_acc_modsw_ctrl_t;
 
-  mainsubs_feed_data_t  out_main_subs_feed_data;
-  logic                 out_main_subs_feed_data_avail;
+  decomp_ntt_data_t    in_decomp_ntt_data;
+  decomp_ntt_ctrl_t    in_decomp_ntt_ctrl;
+  decomp_ntt_data_t    out_decomp_ntt_data;
+  decomp_ntt_ctrl_t    out_decomp_ntt_ctrl;
+  ntt_acc_modsw_data_t in_ntt_acc_modsw_data;
+  ntt_acc_modsw_ctrl_t in_ntt_acc_modsw_ctrl;
+  ntt_acc_modsw_data_t out_ntt_acc_modsw_data;
+  ntt_acc_modsw_ctrl_t out_ntt_acc_modsw_ctrl;
 
-  mainsubs_feed_part_t  out_main_subs_feed_part;
-  logic                 out_main_subs_feed_part_avail;
-
-  // Acc
-  subsmain_acc_data_t   in_subs_main_acc_data;
-  logic                 in_subs_main_acc_data_avail;
-
-  subsmain_acc_data_t   out_subs_main_acc_data;
-  logic                 out_subs_main_acc_data_avail;
-
-  // Sxt
-  mainsubs_sxt_cmd_t    in_main_subs_sxt_cmd;
-  logic                 in_main_subs_sxt_cmd_vld;
-  logic                 in_main_subs_sxt_cmd_rdy;
-
-  subsmain_sxt_data_t   in_subs_main_sxt_data;
-  logic                 in_subs_main_sxt_data_vld;
-  logic                 in_subs_main_sxt_data_rdy;
-
-  subsmain_sxt_part_t   in_subs_main_sxt_part;
-  logic                 in_subs_main_sxt_part_vld;
-  logic                 in_subs_main_sxt_part_rdy;
-
-  mainsubs_sxt_cmd_t    out_main_subs_sxt_cmd;
-  logic                 out_main_subs_sxt_cmd_vld;
-  logic                 out_main_subs_sxt_cmd_rdy;
-
-  subsmain_sxt_data_t   out_subs_main_sxt_data;
-  logic                 out_subs_main_sxt_data_vld;
-  logic                 out_subs_main_sxt_data_rdy;
-
-  subsmain_sxt_part_t   out_subs_main_sxt_part;
-  logic                 out_subs_main_sxt_part_vld;
-  logic                 out_subs_main_sxt_part_rdy;
-
-  //-- LDG
-  mainsubs_ldg_cmd_t    in_main_subs_ldg_cmd;
-  logic                 in_main_subs_ldg_cmd_vld;
-  logic                 in_main_subs_ldg_cmd_rdy;
-
-  mainsubs_ldg_data_t   in_main_subs_ldg_data;
-  logic                 in_main_subs_ldg_data_vld;
-  logic                 in_main_subs_ldg_data_rdy;
-
-  mainsubs_ldg_cmd_t    out_main_subs_ldg_cmd;
-  logic                 out_main_subs_ldg_cmd_vld;
-  logic                 out_main_subs_ldg_cmd_rdy;
-
-  mainsubs_ldg_data_t   out_main_subs_ldg_data;
-  logic                 out_main_subs_ldg_data_vld;
-  logic                 out_main_subs_ldg_data_rdy;
-  //-- MMACC Misc
-  mainsubs_side_t       in_main_subs_side;
-  subsmain_side_t       in_subs_main_side;
-
-  mainsubs_side_t       out_main_subs_side;
-  subsmain_side_t       out_subs_main_side;
   // -------------------------------------------------------------------------------------------- --
   //-- BSK : entry <-> bsk
   // -------------------------------------------------------------------------------------------- --
@@ -234,44 +206,136 @@ module hpu_3parts
                       out_p1_prc_interrupt};
 
 // ============================================================================================== --
+// Daisy chain the reset signals to be able to pin the reset root to different SLRs
+// ============================================================================================== --
+  logic [2:0] prc_srst_n_part;
+  logic [1:0] prc_rst_sll;
+
+  fpga_clock_reset #(
+    .RST_POL         ( 1'b0                  ) ,
+    .INTER_PART_PIPE ( INTER_PART_PIPE       ) ,
+    .INTRA_PART_PIPE ( 2*INTER_PART_PIPE + 1 ) // To match the latency of the other resets
+  ) prc3_clk_rst (
+    .clk_in  ( prc_clk_free       ) ,
+    .rst_in  ( prc_srst_n         ) ,
+    .rst_nxt ( prc_rst_sll[0]     ) ,
+    .clk_en  ( prc_ce             ) ,
+    .rst_out ( prc_srst_n_part[2] )
+  );
+
+  fpga_clock_reset #(
+    .RST_POL         ( 1'b0                ) ,
+    .INTER_PART_PIPE ( INTER_PART_PIPE     ) ,
+    .INTRA_PART_PIPE ( INTER_PART_PIPE + 1 ) // To match the latency of the other resets
+  ) prc2_clk_rst (
+    .clk_in  ( prc_clk_free       ) ,
+    .rst_in  ( prc_rst_sll[0]     ) ,
+    .rst_nxt ( prc_rst_sll[1]     ) ,
+    .clk_en  ( /*NC*/             ) ,
+    .rst_out ( prc_srst_n_part[1] )
+  );
+
+  fpga_clock_reset #(
+    .RST_POL         ( 1'b0  ) ,
+    .INTER_PART_PIPE ( 0     ) ,
+    .INTRA_PART_PIPE ( 1     ) // To match the latency of the other resets
+  ) prc1_clk_rst (
+    .clk_in  ( prc_clk_free       ) ,
+    .rst_in  ( prc_rst_sll[1]     ) ,
+    .rst_nxt ( /*NC*/             ) ,
+    .clk_en  ( /*NC*/             ) ,
+    .rst_out ( prc_srst_n_part[0] )
+  );
+
+//=====================================
+// Fifo element
+//=====================================
+  // These belong to SLR2, where the ISC is placed. The NOC slave is very close to it already
+
+  logic [31:0] s1_isc_dop;
+  logic        s1_isc_dop_vld;
+  logic        s1_isc_dop_rdy;
+  fifo_element #(
+  .WIDTH          (32),
+  .DEPTH          (1),
+  .TYPE_ARRAY     (4'h3),
+  .DO_RESET_DATA  (0),
+  .RESET_DATA_VAL (0)
+  ) fifo_element_isc_dop (
+    .clk     (prc_clk),
+    .s_rst_n (prc_srst_n_part[0]),
+
+    .in_data (isc_dop),
+    .in_vld  (isc_dop_vld),
+    .in_rdy  (isc_dop_rdy),
+
+    .out_data(s1_isc_dop),
+    .out_vld (s1_isc_dop_vld),
+    .out_rdy (s1_isc_dop_rdy)
+  );
+
+  logic [31:0] s1_isc_ack;
+  logic        s1_isc_ack_vld;
+  logic        s1_isc_ack_rdy;
+  fifo_element #(
+  .WIDTH          (32),
+  .DEPTH          (1),
+  .TYPE_ARRAY     (4'h3),
+  .DO_RESET_DATA  (0),
+  .RESET_DATA_VAL (0)
+  ) fifo_element_isc_ack (
+    .clk     (prc_clk),
+    .s_rst_n (prc_srst_n_part[0]),
+
+    .in_data (s1_isc_ack),
+    .in_vld  (s1_isc_ack_vld),
+    .in_rdy  (s1_isc_ack_rdy),
+
+    .out_data (isc_ack),
+    .out_vld  (isc_ack_vld),
+    .out_rdy  (isc_ack_rdy)
+  );
+
+// ============================================================================================== --
 // Inter part pipes
 // ============================================================================================== --
-  assign out_main_subs_feed_cmd         = in_main_subs_feed_cmd;
-  assign out_main_subs_feed_cmd_vld     = in_main_subs_feed_cmd_vld;
-  assign in_main_subs_feed_cmd_rdy      = out_main_subs_feed_cmd_rdy;
+// Note: Increasing inter part pipe here will increase the NTT and, consequently, PBS latency
+  localparam int unsigned P2_P1_PART_PIPE = INTER_PART_PIPE > 0 ? unsigned'(1) : unsigned'(0);
+  localparam int unsigned P1_P2_PART_PIPE = unsigned'(0);
 
-  assign out_main_subs_feed_data        = in_main_subs_feed_data;
-  assign out_main_subs_feed_data_avail  = in_main_subs_feed_data_avail;
+  hpu_qual_sll #(
+    .IN_DEPTH    ( 0                            ) ,
+    .OUT_DEPTH   ( P1_P2_PART_PIPE              ) ,
+    .DATA_WIDTH  ( $bits(decomp_ntt_data_t)     ) ,
+    .CTRL_WIDTH  ( $bits(decomp_ntt_ctrl_t)     ) ,
+    .CTRL_RST    ( $bits(decomp_ntt_ctrl_t)'(0) )
+  ) p1_p2_sll_decomp_ntt (
+    .in_clk      ( prc_clk             ) ,
+    .in_s_rst_n  ( prc_srst_n_part[0]  ) ,
+    .in_data     ( in_decomp_ntt_data  ) ,
+    .in_ctrl     ( in_decomp_ntt_ctrl  ) ,
+    .out_clk     ( prc_clk             ) ,
+    .out_s_rst_n ( prc_srst_n_part[1]  ) ,
+    .out_data    ( out_decomp_ntt_data ) ,
+    .out_ctrl    ( out_decomp_ntt_ctrl )
+  );
 
-  assign out_main_subs_feed_part        = in_main_subs_feed_part;
-  assign out_main_subs_feed_part_avail  = in_main_subs_feed_part_avail;
-
-  assign out_subs_main_acc_data         = in_subs_main_acc_data;
-  assign out_subs_main_acc_data_avail   = in_subs_main_acc_data_avail;
-
-  assign out_main_subs_sxt_cmd          = in_main_subs_sxt_cmd;
-  assign out_main_subs_sxt_cmd_vld      = in_main_subs_sxt_cmd_vld;
-  assign in_main_subs_sxt_cmd_rdy       = out_main_subs_sxt_cmd_rdy;
-
-  assign out_subs_main_sxt_data         = in_subs_main_sxt_data;
-  assign out_subs_main_sxt_data_vld     = in_subs_main_sxt_data_vld;
-  assign in_subs_main_sxt_data_rdy      = out_subs_main_sxt_data_rdy;
-
-  assign out_subs_main_sxt_part         = in_subs_main_sxt_part;
-  assign out_subs_main_sxt_part_vld     = in_subs_main_sxt_part_vld;
-  assign in_subs_main_sxt_part_rdy      = out_subs_main_sxt_part_rdy;
-
-  assign out_main_subs_ldg_cmd          = in_main_subs_ldg_cmd;
-  assign out_main_subs_ldg_cmd_vld      = in_main_subs_ldg_cmd_vld;
-  assign in_main_subs_ldg_cmd_rdy       = out_main_subs_ldg_cmd_rdy;
-
-  assign out_main_subs_ldg_data         = in_main_subs_ldg_data;
-  assign out_main_subs_ldg_data_vld     = in_main_subs_ldg_data_vld;
-  assign in_main_subs_ldg_data_rdy      = out_main_subs_ldg_data_rdy;
-
-  assign out_main_subs_side             = in_main_subs_side;
-  assign out_subs_main_side             = in_subs_main_side;
-
+  hpu_qual_sll #(
+    .IN_DEPTH    ( 0                               ) ,
+    .OUT_DEPTH   ( P2_P1_PART_PIPE                 ) ,
+    .DATA_WIDTH  ( $bits(ntt_acc_modsw_data_t)     ) ,
+    .CTRL_WIDTH  ( $bits(ntt_acc_modsw_ctrl_t)     ) ,
+    .CTRL_RST    ( $bits(ntt_acc_modsw_ctrl_t)'(0) )
+  ) p2_p1_sll_ntt_acc_modsw (
+    .in_clk      ( prc_clk                ) ,
+    .in_s_rst_n  ( prc_srst_n_part[1]     ) ,
+    .in_data     ( in_ntt_acc_modsw_data  ) ,
+    .in_ctrl     ( in_ntt_acc_modsw_ctrl  ) ,
+    .out_clk     ( prc_clk                ) ,
+    .out_s_rst_n ( prc_srst_n_part[0]     ) ,
+    .out_data    ( out_ntt_acc_modsw_data ) ,
+    .out_ctrl    ( out_ntt_acc_modsw_ctrl )
+  );
 
   generate
     if (INTER_PART_PIPE > 0) begin : gen_inter_part_pipe
@@ -296,49 +360,75 @@ module hpu_3parts
       //-- To regif
       pep_rif_elt_t          out_p2_p3_pep_rif_eltD;
 
-      // No backpressure
+      // ----------------------------------------------------------------------------------------- //
+      // Interpart Resetable output flops
+      // ----------------------------------------------------------------------------------------- //
+      // Part 1
       always_ff @(posedge prc_clk)
-        if (!prc_srst_n) begin
-          out_entry_bsk_proc               <= '0;
+        if (!prc_srst_n_part[0]) begin
           out_bsk_entry_proc               <= '0;
+          out_p1_prc_interrupt             <= '0;
+        end
+        else begin
+          out_bsk_entry_proc               <= out_bsk_entry_procD;
+          out_p1_prc_interrupt             <= out_p1_prc_interrupt;
+        end
+
+      // Part 2
+      always_ff @(posedge prc_clk)
+        if (!prc_srst_n_part[1]) begin
           out_ntt_proc_cmd_avail           <= '0;
-          out_p2_p3_ntt_proc_avail         <= '0;
-          out_p2_p3_ntt_proc_ctrl_avail    <= '0;
           out_p3_p2_ntt_proc_avail         <= '0;
           out_p3_p2_ntt_proc_ctrl_avail    <= '0;
+        end
+        else begin
+          out_ntt_proc_cmd_avail           <= out_ntt_proc_cmd_availD;
+          out_p3_p2_ntt_proc_avail         <= out_p3_p2_ntt_proc_availD;
+          out_p3_p2_ntt_proc_ctrl_avail    <= out_p3_p2_ntt_proc_ctrl_availD;
+        end
+
+      // Part 3
+      always_ff @(posedge prc_clk)
+        if (!prc_srst_n_part[2]) begin
+          out_entry_bsk_proc               <= '0;
+          out_p2_p3_ntt_proc_avail         <= '0;
+          out_p2_p3_ntt_proc_ctrl_avail    <= '0;
           out_p2_p3_pep_rif_elt            <= '0;
-          out_p1_prc_interrupt             <= '0;
           out_p3_prc_interrupt             <= '0;
         end
         else begin
           out_entry_bsk_proc               <= out_entry_bsk_procD;
-          out_bsk_entry_proc               <= out_bsk_entry_procD;
-          out_ntt_proc_cmd_avail           <= out_ntt_proc_cmd_availD;
           out_p2_p3_ntt_proc_avail         <= out_p2_p3_ntt_proc_availD;
           out_p2_p3_ntt_proc_ctrl_avail    <= out_p2_p3_ntt_proc_ctrl_availD;
-          out_p3_p2_ntt_proc_avail         <= out_p3_p2_ntt_proc_availD;
-          out_p3_p2_ntt_proc_ctrl_avail    <= out_p3_p2_ntt_proc_ctrl_availD;
           out_p2_p3_pep_rif_elt            <= out_p2_p3_pep_rif_eltD;
-          out_p1_prc_interrupt             <= out_p1_prc_interrupt;
           out_p3_prc_interrupt             <= out_p3_prc_interrupt;
         end
+      // ----------------------------------------------------------------------------------------- //
 
       always_ff @(posedge prc_clk) begin
         out_ntt_proc_cmd           <= out_ntt_proc_cmdD;
-        out_p2_p3_ntt_proc_data    <= out_p2_p3_ntt_proc_dataD;
         out_p3_p2_ntt_proc_data    <= out_p3_p2_ntt_proc_dataD;
+      end
+
+      always_ff @(posedge prc_clk) begin
+        out_p2_p3_ntt_proc_data    <= out_p2_p3_ntt_proc_dataD;
       end
 
       always_ff @(posedge cfg_clk)
         if (!cfg_srst_n) begin
           out_p1_cfg_interrupt <= '0;
-          out_p3_cfg_interrupt <= '0;
         end
         else begin
           out_p1_cfg_interrupt <= in_p1_cfg_interrupt;
-          out_p3_cfg_interrupt <= in_p3_cfg_interrupt;
         end
 
+      always_ff @(posedge cfg_clk)
+        if (!cfg_srst_n) begin
+          out_p3_cfg_interrupt <= '0;
+        end
+        else begin
+          out_p3_cfg_interrupt <= in_p3_cfg_interrupt;
+        end
 
       if (INTER_PART_PIPE == 1) begin
         assign out_entry_bsk_procD            = in_entry_bsk_proc;
@@ -395,31 +485,49 @@ module hpu_3parts
         assign out_p3_p2_ntt_proc_ctrl_availD = in_p3_p2_ntt_proc_ctrl_avail_dly;
 
         always_ff @(posedge prc_clk)
-          if (!prc_srst_n) begin
-            in_p2_p3_ntt_proc_avail_dly      <= '0;
-            in_p2_p3_ntt_proc_ctrl_avail_dly <= '0;
-            in_p3_p2_ntt_proc_avail_dly      <= '0;
-            in_p3_p2_ntt_proc_ctrl_avail_dly <= '0;
+          if (!prc_srst_n_part[0]) begin
             in_ntt_proc_cmd_avail_dly        <= '0;
             in_entry_bsk_proc_dly            <= '0;
-            in_bsk_entry_proc_dly            <= '0;
+          end
+          else begin
+            in_ntt_proc_cmd_avail_dly        <= in_ntt_proc_cmd_avail;
+            in_entry_bsk_proc_dly            <= in_entry_bsk_proc;
+          end
+
+        always_ff @(posedge prc_clk)
+          if (!prc_srst_n_part[1]) begin
+            in_p2_p3_ntt_proc_avail_dly      <= '0;
+            in_p2_p3_ntt_proc_ctrl_avail_dly <= '0;
             in_p2_p3_pep_rif_elt_dly         <= '0;
           end
           else begin
             in_p2_p3_ntt_proc_avail_dly      <= in_p2_p3_ntt_proc_avail     ;
             in_p2_p3_ntt_proc_ctrl_avail_dly <= in_p2_p3_ntt_proc_ctrl_avail;
-            in_p3_p2_ntt_proc_avail_dly      <= in_p3_p2_ntt_proc_avail     ;
-            in_p3_p2_ntt_proc_ctrl_avail_dly <= in_p3_p2_ntt_proc_ctrl_avail;
-            in_ntt_proc_cmd_avail_dly        <= in_ntt_proc_cmd_avail;
-            in_entry_bsk_proc_dly            <= in_entry_bsk_proc;
-            in_bsk_entry_proc_dly            <= in_bsk_entry_proc;
             in_p2_p3_pep_rif_elt_dly         <= in_p2_p3_pep_rif_elt;
           end
 
+        always_ff @(posedge prc_clk)
+          if (!prc_srst_n_part[2]) begin
+            in_bsk_entry_proc_dly            <= '0;
+            in_p3_p2_ntt_proc_avail_dly      <= '0;
+            in_p3_p2_ntt_proc_ctrl_avail_dly <= '0;
+          end
+          else begin
+            in_bsk_entry_proc_dly            <= in_bsk_entry_proc;
+            in_p3_p2_ntt_proc_avail_dly      <= in_p3_p2_ntt_proc_avail     ;
+            in_p3_p2_ntt_proc_ctrl_avail_dly <= in_p3_p2_ntt_proc_ctrl_avail;
+          end
+
+        always_ff @(posedge prc_clk) begin
+          in_ntt_proc_cmd_dly        <= in_ntt_proc_cmd;
+        end
+
         always_ff @(posedge prc_clk) begin
           in_p2_p3_ntt_proc_data_dly <= in_p2_p3_ntt_proc_data;
+        end
+
+        always_ff @(posedge prc_clk) begin
           in_p3_p2_ntt_proc_data_dly <= in_p3_p2_ntt_proc_data;
-          in_ntt_proc_cmd_dly        <= in_ntt_proc_cmd;
         end
       end
       else begin
@@ -486,7 +594,7 @@ module hpu_3parts
     .VERSION_MINOR     (VERSION_MINOR)
   ) hpu_3parts_1in3_core (
     .prc_clk                 (prc_clk),
-    .prc_srst_n              (prc_srst_n),
+    .prc_srst_n              (prc_srst_n_part[0]),
 
     .cfg_clk                 (cfg_clk),
     .cfg_srst_n              (cfg_srst_n),
@@ -509,55 +617,43 @@ module hpu_3parts
     //== Axi4 KSK interface
     `HPU_AXI4_FULL_INSTANCE(ksk, ksk,,[KSK_PC-1:0])
 
-    .isc_dop                   (isc_dop),
-    .isc_dop_rdy               (isc_dop_rdy),
-    .isc_dop_vld               (isc_dop_vld),
+    .isc_dop                   (s1_isc_dop),
+    .isc_dop_rdy               (s1_isc_dop_rdy),
+    .isc_dop_vld               (s1_isc_dop_vld),
 
-    .isc_ack                   (isc_ack),
-    .isc_ack_rdy               (isc_ack_rdy),
-    .isc_ack_vld               (isc_ack_vld),
-
-    .main_subs_feed_cmd        (in_main_subs_feed_cmd),
-    .main_subs_feed_cmd_vld    (in_main_subs_feed_cmd_vld),
-    .main_subs_feed_cmd_rdy    (in_main_subs_feed_cmd_rdy),
-
-    .main_subs_feed_data       (in_main_subs_feed_data),
-    .main_subs_feed_data_avail (in_main_subs_feed_data_avail),
-
-    .main_subs_feed_part       (in_main_subs_feed_part),
-    .main_subs_feed_part_avail (in_main_subs_feed_part_avail),
-
-    .subs_main_acc_data        (out_subs_main_acc_data),
-    .subs_main_acc_data_avail  (out_subs_main_acc_data_avail),
-
-    .main_subs_sxt_cmd         (in_main_subs_sxt_cmd),
-    .main_subs_sxt_cmd_vld     (in_main_subs_sxt_cmd_vld),
-    .main_subs_sxt_cmd_rdy     (in_main_subs_sxt_cmd_rdy),
-
-    .subs_main_sxt_data        (out_subs_main_sxt_data),
-    .subs_main_sxt_data_vld    (out_subs_main_sxt_data_vld),
-    .subs_main_sxt_data_rdy    (out_subs_main_sxt_data_rdy),
-
-    .subs_main_sxt_part        (out_subs_main_sxt_part),
-    .subs_main_sxt_part_vld    (out_subs_main_sxt_part_vld),
-    .subs_main_sxt_part_rdy    (out_subs_main_sxt_part_rdy),
-
-    .main_subs_ldg_cmd         (in_main_subs_ldg_cmd),
-    .main_subs_ldg_cmd_vld     (in_main_subs_ldg_cmd_vld),
-    .main_subs_ldg_cmd_rdy     (in_main_subs_ldg_cmd_rdy),
-
-    .main_subs_ldg_data        (in_main_subs_ldg_data),
-    .main_subs_ldg_data_vld    (in_main_subs_ldg_data_vld),
-    .main_subs_ldg_data_rdy    (in_main_subs_ldg_data_rdy),
-
-    .main_subs_side            (in_main_subs_side),
-    .subs_main_side            (out_subs_main_side),
+    .isc_ack                   (s1_isc_ack),
+    .isc_ack_rdy               (s1_isc_ack_rdy),
+    .isc_ack_vld               (s1_isc_ack_vld),
 
     .entry_bsk_proc            (in_entry_bsk_proc),
     .bsk_entry_proc            (out_bsk_entry_proc),
 
     .ntt_proc_cmd              (in_ntt_proc_cmd),
-    .ntt_proc_cmd_avail        (in_ntt_proc_cmd_avail)
+    .ntt_proc_cmd_avail        (in_ntt_proc_cmd_avail),
+
+    .decomp_ntt_data_avail      (in_decomp_ntt_ctrl.data_avail     ),
+    .decomp_ntt_data            (in_decomp_ntt_data.data           ),
+    .decomp_ntt_sob             (in_decomp_ntt_data.sob            ),
+    .decomp_ntt_eob             (in_decomp_ntt_data.eob            ),
+    .decomp_ntt_sog             (in_decomp_ntt_data.sog            ),
+    .decomp_ntt_eog             (in_decomp_ntt_data.eog            ),
+    .decomp_ntt_sol             (in_decomp_ntt_data.sol            ),
+    .decomp_ntt_eol             (in_decomp_ntt_data.eol            ),
+    .decomp_ntt_pbs_id          (in_decomp_ntt_data.pbs_id         ),
+    .decomp_ntt_last_pbs        (in_decomp_ntt_data.last_pbs       ),
+    .decomp_ntt_full_throughput (in_decomp_ntt_data.full_throughput),
+    .decomp_ntt_ctrl_avail      (in_decomp_ntt_ctrl.ctrl_avail     ),
+
+    .ntt_acc_modsw_data_avail   (out_ntt_acc_modsw_ctrl.data_avail ),
+    .ntt_acc_modsw_ctrl_avail   (out_ntt_acc_modsw_ctrl.ctrl_avail ),
+    .ntt_acc_modsw_data         (out_ntt_acc_modsw_data.data       ),
+    .ntt_acc_modsw_sob          (out_ntt_acc_modsw_data.sob        ),
+    .ntt_acc_modsw_eob          (out_ntt_acc_modsw_data.eob        ),
+    .ntt_acc_modsw_sol          (out_ntt_acc_modsw_data.sol        ),
+    .ntt_acc_modsw_eol          (out_ntt_acc_modsw_data.eol        ),
+    .ntt_acc_modsw_sog          (out_ntt_acc_modsw_data.sog        ),
+    .ntt_acc_modsw_eog          (out_ntt_acc_modsw_data.eog        ),
+    .ntt_acc_modsw_pbs_id       (out_ntt_acc_modsw_data.pbs_id     )
   );
 
 // ============================================================================================== --
@@ -575,46 +671,34 @@ module hpu_3parts
     .VERSION_MINOR     (VERSION_MINOR)
   ) hpu_3parts_2in3_core (
     .prc_clk                    (prc_clk),
-    .prc_srst_n                 (prc_srst_n),
+    .prc_srst_n                 (prc_srst_n_part[1]),
 
     .cfg_clk                    (cfg_clk),
     .cfg_srst_n                 (cfg_srst_n),
 
-    .main_subs_feed_cmd         (out_main_subs_feed_cmd),
-    .main_subs_feed_cmd_vld     (out_main_subs_feed_cmd_vld),
-    .main_subs_feed_cmd_rdy     (out_main_subs_feed_cmd_rdy),
+    .decomp_ntt_data_avail      (out_decomp_ntt_ctrl.data_avail),
+    .decomp_ntt_data            (out_decomp_ntt_data.data),
+    .decomp_ntt_sob             (out_decomp_ntt_data.sob),
+    .decomp_ntt_eob             (out_decomp_ntt_data.eob),
+    .decomp_ntt_sog             (out_decomp_ntt_data.sog),
+    .decomp_ntt_eog             (out_decomp_ntt_data.eog),
+    .decomp_ntt_sol             (out_decomp_ntt_data.sol),
+    .decomp_ntt_eol             (out_decomp_ntt_data.eol),
+    .decomp_ntt_pbs_id          (out_decomp_ntt_data.pbs_id),
+    .decomp_ntt_last_pbs        (out_decomp_ntt_data.last_pbs),
+    .decomp_ntt_full_throughput (out_decomp_ntt_data.full_throughput),
+    .decomp_ntt_ctrl_avail      (out_decomp_ntt_ctrl.ctrl_avail),
 
-    .main_subs_feed_data        (out_main_subs_feed_data),
-    .main_subs_feed_data_avail  (out_main_subs_feed_data_avail),
-
-    .main_subs_feed_part        (out_main_subs_feed_part),
-    .main_subs_feed_part_avail  (out_main_subs_feed_part_avail),
-
-    .subs_main_acc_data         (in_subs_main_acc_data),
-    .subs_main_acc_data_avail   (in_subs_main_acc_data_avail),
-
-    .main_subs_sxt_cmd          (out_main_subs_sxt_cmd),
-    .main_subs_sxt_cmd_vld      (out_main_subs_sxt_cmd_vld),
-    .main_subs_sxt_cmd_rdy      (out_main_subs_sxt_cmd_rdy),
-
-    .subs_main_sxt_data         (in_subs_main_sxt_data),
-    .subs_main_sxt_data_vld     (in_subs_main_sxt_data_vld),
-    .subs_main_sxt_data_rdy     (in_subs_main_sxt_data_rdy),
-
-    .subs_main_sxt_part         (in_subs_main_sxt_part),
-    .subs_main_sxt_part_vld     (in_subs_main_sxt_part_vld),
-    .subs_main_sxt_part_rdy     (in_subs_main_sxt_part_rdy),
-
-    .main_subs_ldg_cmd          (out_main_subs_ldg_cmd),
-    .main_subs_ldg_cmd_vld      (out_main_subs_ldg_cmd_vld),
-    .main_subs_ldg_cmd_rdy      (out_main_subs_ldg_cmd_rdy),
-
-    .main_subs_ldg_data         (out_main_subs_ldg_data),
-    .main_subs_ldg_data_vld     (out_main_subs_ldg_data_vld),
-    .main_subs_ldg_data_rdy     (out_main_subs_ldg_data_rdy),
-
-    .subs_main_side             (in_subs_main_side),
-    .main_subs_side             (out_main_subs_side),
+    .ntt_acc_modsw_data_avail   (in_ntt_acc_modsw_ctrl.data_avail),
+    .ntt_acc_modsw_ctrl_avail   (in_ntt_acc_modsw_ctrl.ctrl_avail),
+    .ntt_acc_modsw_data         (in_ntt_acc_modsw_data.data),
+    .ntt_acc_modsw_sob          (in_ntt_acc_modsw_data.sob),
+    .ntt_acc_modsw_eob          (in_ntt_acc_modsw_data.eob),
+    .ntt_acc_modsw_sol          (in_ntt_acc_modsw_data.sol),
+    .ntt_acc_modsw_eol          (in_ntt_acc_modsw_data.eol),
+    .ntt_acc_modsw_sog          (in_ntt_acc_modsw_data.sog),
+    .ntt_acc_modsw_eog          (in_ntt_acc_modsw_data.eog),
+    .ntt_acc_modsw_pbs_id       (in_ntt_acc_modsw_data.pbs_id),
 
     .p2_p3_ntt_proc_data        (in_p2_p3_ntt_proc_data),
     .p2_p3_ntt_proc_avail       (in_p2_p3_ntt_proc_avail),
@@ -645,7 +729,7 @@ module hpu_3parts
     .VERSION_MINOR     (VERSION_MINOR)
   ) hpu_3parts_3in3_core (
     .prc_clk                  (prc_clk),
-    .prc_srst_n               (prc_srst_n),
+    .prc_srst_n               (prc_srst_n_part[2]),
 
     .cfg_clk                  (cfg_clk),
     .cfg_srst_n               (cfg_srst_n),

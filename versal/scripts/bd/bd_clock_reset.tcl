@@ -116,10 +116,15 @@ proc create_hier_cell_clock_reset { parentCell nameHier } {
   create_bd_pin -dir O -from 0 -to 0 -type rst resetn_pl_periph
   create_bd_pin -dir O -type clk clk_usr_0
   create_bd_pin -dir O -from 0 -to 0 -type rst resetn_usr_0_ic
+  create_bd_pin -dir O -from 0 -to 0 -type rst resetn_usr_0_ic_gated
   create_bd_pin -dir O -from 0 -to 0 -type rst resetn_usr_0_periph
+  create_bd_pin -dir I clk_usr_0_ce
   create_bd_pin -dir O -type clk clk_usr_1
   create_bd_pin -dir O -from 0 -to 0 -type rst resetn_usr_1_ic
   create_bd_pin -dir O -from 0 -to 0 -type rst resetn_usr_1_periph
+
+  # Free running version
+  create_bd_pin -dir O -type clk clk_usr_0_fr
 
   ####################################
   # Create instances
@@ -137,16 +142,17 @@ proc create_hier_cell_clock_reset { parentCell nameHier } {
 
   # Note that the clock frequencies are not round : this avoid us some warnings
   #  > " requested frequency cannot be achieved for value [...]"
-  set user_freq "${USER_0_FREQ},${USER_1_FREQ}"
+  set user_freq "${USER_0_FREQ},${USER_1_FREQ},${USER_0_FREQ}"
   set_property -dict [list \
-    CONFIG.CLKOUT_DRIVES {No_buffer,No_buffer} \
+    CONFIG.CLKOUT_DRIVES {BUFGCE,No_buffer,No_buffer} \
     CONFIG.CLKOUT_REQUESTED_OUT_FREQUENCY $user_freq \
-    CONFIG.CLKOUT_USED {true,true} \
+    CONFIG.CLKOUT_USED {true,true,true} \
     CONFIG.PRIM_SOURCE {No_buffer} \
     CONFIG.USE_DYN_RECONFIG {false} \
     CONFIG.USE_LOCKED {true} \
     CONFIG.USE_POWER_DOWN {false} \
     CONFIG.USE_RESET {false} \
+    CONFIG.CE_TYPE {HARDSYNC} \
   ] $usr_clk_wiz
 
   # Create instance: usr_0_psr, and set properties
@@ -156,6 +162,10 @@ proc create_hier_cell_clock_reset { parentCell nameHier } {
   # Create instance: usr_1_psr, and set properties
   set usr_1_psr [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 usr_1_psr ]
   set_property CONFIG.C_EXT_RST_WIDTH {1} $usr_1_psr
+
+  # Create instance: usr_2_psr, and set properties
+  set usr_2_psr [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 usr_2_psr ]
+  set_property CONFIG.C_EXT_RST_WIDTH {1} $usr_2_psr
 
   # Create instance: pcie_mgmt_pdi_reset
   create_hier_cell_pcie_mgmt_pdi_reset $hier_obj pcie_mgmt_pdi_reset
@@ -173,16 +183,19 @@ proc create_hier_cell_clock_reset { parentCell nameHier } {
   connect_bd_net -net dma_axi_aresetn_1 [get_bd_pins dma_axi_aresetn] [get_bd_pins pcie_mgmt_pdi_reset/resetn_in]
   connect_bd_net -net pcie_psr_interconnect_aresetn [get_bd_pins pcie_psr/interconnect_aresetn] [get_bd_pins resetn_pcie_ic]
   connect_bd_net -net pcie_psr_peripheral_aresetn [get_bd_pins pcie_psr/peripheral_aresetn] [get_bd_pins resetn_pcie_periph]
-  connect_bd_net -net pl_psr_interconnect_aresetn [get_bd_pins pl_psr/interconnect_aresetn] [get_bd_pins resetn_pl_ic] [get_bd_pins pcie_psr/ext_reset_in] [get_bd_pins usr_0_psr/ext_reset_in] [get_bd_pins usr_1_psr/ext_reset_in]
+  connect_bd_net -net pl_psr_interconnect_aresetn [get_bd_pins pl_psr/interconnect_aresetn] [get_bd_pins resetn_pl_ic] [get_bd_pins pcie_psr/ext_reset_in] [get_bd_pins usr_0_psr/ext_reset_in] [get_bd_pins usr_1_psr/ext_reset_in] [get_bd_pins usr_2_psr/ext_reset_in]
   connect_bd_net -net pl_psr_peripheral_aresetn [get_bd_pins pl_psr/peripheral_aresetn] [get_bd_pins resetn_pl_periph] [get_bd_pins pcie_mgmt_pdi_reset/resetn]
   connect_bd_net -net resetn_pl_axi_1 [get_bd_pins resetn_pl_axi] [get_bd_pins pl_psr/ext_reset_in]
   connect_bd_net -net usr_0_psr_interconnect_aresetn [get_bd_pins usr_0_psr/interconnect_aresetn] [get_bd_pins resetn_usr_0_ic]
   connect_bd_net -net usr_0_psr_peripheral_aresetn [get_bd_pins usr_0_psr/peripheral_aresetn] [get_bd_pins resetn_usr_0_periph]
   connect_bd_net -net usr_1_psr_interconnect_aresetn [get_bd_pins usr_1_psr/interconnect_aresetn] [get_bd_pins resetn_usr_1_ic]
   connect_bd_net -net usr_1_psr_peripheral_aresetn [get_bd_pins usr_1_psr/peripheral_aresetn] [get_bd_pins resetn_usr_1_periph]
-  connect_bd_net -net usr_clk_wiz_clk_out1 [get_bd_pins usr_clk_wiz/clk_out1] [get_bd_pins clk_usr_0] [get_bd_pins usr_0_psr/slowest_sync_clk]
-  connect_bd_net -net usr_clk_wiz_clk_out2 [get_bd_pins usr_clk_wiz/clk_out2] [get_bd_pins clk_usr_1] [get_bd_pins usr_1_psr/slowest_sync_clk]
-  connect_bd_net -net usr_clk_wiz_locked [get_bd_pins usr_clk_wiz/locked] [get_bd_pins usr_0_psr/dcm_locked] [get_bd_pins usr_1_psr/dcm_locked]
+  connect_bd_net -net usr_2_psr_interconnect_aresetn [get_bd_pins usr_2_psr/interconnect_aresetn] [get_bd_pins resetn_usr_0_ic_gated]
+  connect_bd_net -net usr_clk_wiz_clk_out3 [get_bd_pins usr_clk_wiz/clk_out3] [get_bd_pins clk_usr_0_fr] [get_bd_pins usr_0_psr/slowest_sync_clk]
+  connect_bd_net -net usr_clk_wiz_clk_out2 [get_bd_pins usr_clk_wiz/clk_out2] [get_bd_pins clk_usr_1]    [get_bd_pins usr_1_psr/slowest_sync_clk]
+  connect_bd_net -net usr_clk_wiz_clk_out1 [get_bd_pins usr_clk_wiz/clk_out1] [get_bd_pins clk_usr_0]    [get_bd_pins usr_2_psr/slowest_sync_clk]
+  connect_bd_net -net clk_usr_0_en_net     [get_bd_pins clk_usr_0_ce]         [get_bd_pins usr_clk_wiz/clk_out1_ce]
+  connect_bd_net -net usr_clk_wiz_locked [get_bd_pins usr_clk_wiz/locked] [get_bd_pins usr_0_psr/dcm_locked] [get_bd_pins usr_1_psr/dcm_locked] [get_bd_pins usr_2_psr/dcm_locked]
 
   ####################################
   # Restore instance

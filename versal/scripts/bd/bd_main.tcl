@@ -90,8 +90,10 @@ proc create_root_design { parentCell ntt_psi } {
 
   # System clocks
   set clk_usr_0_0 [ create_bd_port -dir O -type clk clk_usr_0_0 ]
+  set clk_usr_0_0_fr [ create_bd_port -dir O -type clk clk_usr_0_0_fr ]
   set clk_usr_1_0 [ create_bd_port -dir O -type clk clk_usr_1_0 ]
   set pl0_ref_clk_0 [ create_bd_port -dir O -type clk pl0_ref_clk_0 ]
+  set clk_usr_0_0_ce [ create_bd_port -dir I clk_usr_0_0_ce]
 
   # Association properties
   set prop_clk(clk_usr_0_0) ""
@@ -358,9 +360,11 @@ proc create_root_design { parentCell ntt_psi } {
   connect_bd_intf_net -intf_net hbm_ref_clk_1  [get_bd_intf_ports /hbm_ref_clk_1]  [get_bd_intf_pins noc_wrapper/hbm_ref_clk_1]
   connect_bd_intf_net -intf_net gt_pcie_refclk [get_bd_intf_ports /gt_pcie_refclk] [get_bd_intf_pins shell_wrapper/gt_pcie_refclk]
 
-  connect_bd_net -net pl0_ref_clk [get_bd_ports /pl0_ref_clk_0] [get_bd_pins shell_wrapper/pl0_ref_clk_0]
-  connect_bd_net -net clk_usr_0   [get_bd_ports /clk_usr_0_0]   [get_bd_pins shell_wrapper/clk_usr_0_0]
-  connect_bd_net -net clk_usr_1   [get_bd_ports /clk_usr_1_0]   [get_bd_pins shell_wrapper/clk_usr_1_0]
+  connect_bd_net -net pl0_ref_clk  [get_bd_ports /pl0_ref_clk_0]  [get_bd_pins shell_wrapper/pl0_ref_clk_0]
+  connect_bd_net -net clk_usr_0    [get_bd_ports /clk_usr_0_0]    [get_bd_pins shell_wrapper/clk_usr_0_0]
+  connect_bd_net -net clk_usr_0_fr [get_bd_ports /clk_usr_0_0_fr] [get_bd_pins shell_wrapper/clk_usr_0_0_fr]
+  connect_bd_net -net clk_usr_1    [get_bd_ports /clk_usr_1_0]    [get_bd_pins shell_wrapper/clk_usr_1_0]
+  connect_bd_net -net clk_usr_0_ce [get_bd_ports /clk_usr_0_0_ce] [get_bd_pins shell_wrapper/clk_usr_0_0_ce]
 
   # == Resets
   connect_bd_net -net pl0_resetn      [get_bd_ports /pl0_resetn_0]      [get_bd_pins shell_wrapper/pl0_resetn_0]
@@ -421,7 +425,7 @@ proc create_root_design { parentCell ntt_psi } {
   connect_bd_net -net clk_usr_1   [get_bd_pins shell_wrapper/clk_usr_1_0] \
                                         [get_bd_pins noc_wrapper/mregif_1_clk] -boundary_type upper
   connect_bd_net [get_bd_pins noc_wrapper/mregif_0_rst_n] \
-                                        [get_bd_pins shell_wrapper/resetn_usr_0_ic_0] -boundary_type upper
+                                        [get_bd_pins shell_wrapper/resetn_usr_0_ic_0_gated] -boundary_type upper
   connect_bd_net [get_bd_pins noc_wrapper/mregif_1_rst_n] \
                                         [get_bd_pins shell_wrapper/resetn_usr_1_ic_0] -boundary_type upper
 

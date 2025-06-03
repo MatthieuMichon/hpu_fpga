@@ -12,6 +12,7 @@
 
 `include "hpu_io_macro_inc.sv"
 
+(* keep_hierarchy = "yes" *)
 module hpu_3parts_3in3_core
   import common_definition_pkg::*;
   import param_tfhe_pkg::*;

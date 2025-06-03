@@ -137,6 +137,8 @@ module top_hpu #(
   */
   // Process clock (fast)
   logic prc_clk;
+  logic prc_clk_free; // free running version
+  logic prc_ce;
   logic prc_srst_n;
   // Configuration clock (slow)
   logic cfg_clk;
@@ -467,6 +469,22 @@ module top_hpu #(
   assign axis_s_tx_tdata_tmp = axis_s_tx_tdata[31:0];
   assign axis_m_rx_tdata     = {{128-32{1'b0}},axis_m_rx_tdata_tmp};
   assign axis_m_tx_tdata_tmp = axis_m_tx_tdata[31:0];
+
+  logic [31:0] isc_dop;
+  logic        isc_dop_vld;
+  logic        isc_dop_rdy;
+
+  logic [31:0] isc_ack;
+  logic        isc_ack_vld;
+  logic        isc_ack_rdy;
+
+  assign isc_dop          = axis_m_tx_tdata_tmp;
+  assign isc_dop_vld      = axis_m_tx_tvalid;
+  assign axis_m_tx_tready = isc_dop_rdy;
+
+  assign axis_s_rx_tdata_tmp = isc_ack;
+  assign axis_s_rx_tvalid    = isc_ack_vld;
+  assign isc_ack_rdy         = axis_s_rx_tready;
 
   // =========================================================================================== //
   // SHELL
@@ -1811,60 +1829,14 @@ module top_hpu #(
     .resetn_usr_1_ic_0(cfg_srst_n),
 
     .clk_usr_0_0(prc_clk),
+    .clk_usr_0_0_fr(prc_clk_free),
     .clk_usr_1_0(cfg_clk),
+    .clk_usr_0_0_ce(prc_ce),
 
     .sys_clk0_0_clk_n(top_sys_clk0_0_clk_n),
     .sys_clk0_0_clk_p(top_sys_clk0_0_clk_p),
     .sys_clk0_1_clk_n(top_sys_clk0_1_clk_n),
     .sys_clk0_1_clk_p(top_sys_clk0_1_clk_p)
-  );
-
-//=====================================
-// Fifo element
-//=====================================
-  // To ease timing. These fifo element can be placed anywhere.
-  logic [31:0] isc_dop;
-  logic        isc_dop_vld;
-  logic        isc_dop_rdy;
-  fifo_element #(
-  .WIDTH          (32),
-  .DEPTH          (1),
-  .TYPE_ARRAY     (4'h3),
-  .DO_RESET_DATA  (0),
-  .RESET_DATA_VAL (0)
-  ) fifo_element_isc_dop (
-    .clk     (prc_clk),
-    .s_rst_n (prc_srst_n),
-
-    .in_data (axis_m_tx_tdata_tmp),
-    .in_vld  (axis_m_tx_tvalid),
-    .in_rdy  (axis_m_tx_tready),
-
-    .out_data(isc_dop),
-    .out_vld (isc_dop_vld),
-    .out_rdy (isc_dop_rdy)
-  );
-
-  logic [31:0] isc_ack;
-  logic        isc_ack_vld;
-  logic        isc_ack_rdy;
-  fifo_element #(
-  .WIDTH          (32),
-  .DEPTH          (1),
-  .TYPE_ARRAY     (4'h3),
-  .DO_RESET_DATA  (0),
-  .RESET_DATA_VAL (0)
-  ) fifo_element_isc_ack (
-    .clk     (prc_clk),
-    .s_rst_n (prc_srst_n),
-
-    .in_data (isc_ack),
-    .in_vld  (isc_ack_vld),
-    .in_rdy  (isc_ack_rdy),
-
-    .out_data(axis_s_rx_tdata_tmp),
-    .out_vld (axis_s_rx_tvalid),
-    .out_rdy (axis_s_rx_tready)
   );
 
 //=====================================
@@ -1881,7 +1853,10 @@ module top_hpu #(
     .INTER_PART_PIPE  (INTER_PART_PIPE)
   ) hpu_3parts (
     .prc_clk                       (prc_clk),
+    .prc_clk_free                  (prc_clk_free),
     .prc_srst_n                    (prc_srst_n),
+    .prc_ce                        (prc_ce),
+
     .cfg_clk                       (cfg_clk),
     .cfg_srst_n                    (cfg_srst_n),
 

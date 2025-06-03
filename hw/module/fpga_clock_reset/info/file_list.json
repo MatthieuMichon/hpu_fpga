@@ -1,0 +1,16 @@
+{
+    "local_root_path": "${PROJECT_DIR}",
+    "dep_root_path"  : "${PROJECT_DIR}",
+    "is_include_dir" : false,
+    "rtl_files": [
+        {
+            "name": "hw/module/fpga_clock_reset/rtl/fpga_clock_reset.sv",
+            "library": "work",
+            "env": ["all"],
+            "target": ["all"],
+            "is_include_file": false
+        }
+    ],
+    "dependency_dir": [],
+    "include_dir": []
+}
