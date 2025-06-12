@@ -122,6 +122,7 @@ module tb_pep_ks_mult_outp;
   logic                                       ctrl_mult_last_eoy;
   logic                                       ctrl_mult_last_last_iter; // last iteration within the column
   logic [TOTAL_BATCH_NB_W-1:0]                ctrl_mult_last_batch_id;
+  logic [PID_W-1:0]                           ctrl_mult_last_pid;
 
   logic [LBX-1:0][LBY-1:0][LBZ-1:0][OP_W-1:0] ksk;
   logic [LBX-1:0][LBY-1:0]                    ksk_vld;
@@ -131,9 +132,11 @@ module tb_pep_ks_mult_outp;
   logic [LBX-1:0]                             mult_outp_avail;
   logic [LBX-1:0]                             mult_outp_last_pbs;
   logic [LBX-1:0][TOTAL_BATCH_NB_W-1:0]       mult_outp_batch_id;
+  logic [LBX-1:0][PID_W-1:0]                  mult_outp_pid;
 
   // body
   logic [TOTAL_BATCH_NB-1:0][OP_W-1:0]        bfifo_outp_data;
+  logic [TOTAL_BATCH_NB-1:0][PID_W-1:0]       bfifo_outp_pid;
   logic [TOTAL_BATCH_NB-1:0]                  bfifo_outp_vld;
   logic [TOTAL_BATCH_NB-1:0]                  bfifo_outp_rdy;
 
@@ -144,7 +147,7 @@ module tb_pep_ks_mult_outp;
 
   // Wr access to body RAM
   logic [TOTAL_BATCH_NB-1:0]                  br_bfifo_wr_en;
-  logic [TOTAL_BATCH_NB-1:0][LWE_COEF_W-1:0]  br_bfifo_data;
+  logic [TOTAL_BATCH_NB-1:0][OP_W-1:0]        br_bfifo_data;
 
   // BCOL done
   logic [TOTAL_BATCH_NB-1:0]                  outp_ks_loop_done_mh;
@@ -174,6 +177,7 @@ module tb_pep_ks_mult_outp;
     .ctrl_mult_last_eoy         (ctrl_mult_last_eoy),
     .ctrl_mult_last_last_iter   (ctrl_mult_last_last_iter),
     .ctrl_mult_last_batch_id    (ctrl_mult_last_batch_id),
+    .ctrl_mult_last_pid         (ctrl_mult_last_pid),
 
     .ksk                        (ksk),
     .ksk_vld                    (ksk_vld),
@@ -183,6 +187,7 @@ module tb_pep_ks_mult_outp;
     .mult_outp_avail            (mult_outp_avail),
     .mult_outp_last_pbs         (mult_outp_last_pbs),
     .mult_outp_batch_id         (mult_outp_batch_id),
+    .mult_outp_pid              (mult_outp_pid),
 
     .error                      (error_mult)
   );
@@ -198,8 +203,10 @@ module tb_pep_ks_mult_outp;
     .mult_outp_avail       (mult_outp_avail),
     .mult_outp_last_pbs    (mult_outp_last_pbs),
     .mult_outp_batch_id    (mult_outp_batch_id),
+    .mult_outp_pid         (mult_outp_pid),
 
     .bfifo_outp_data       (bfifo_outp_data),
+    .bfifo_outp_pid        (bfifo_outp_pid),
     .bfifo_outp_vld        (bfifo_outp_vld),
     .bfifo_outp_rdy        (bfifo_outp_rdy),
 
@@ -211,6 +218,10 @@ module tb_pep_ks_mult_outp;
     .br_bfifo_data         (br_bfifo_data),
     .br_bfifo_pid          (/*UNUSED*/), // Not tested here
     .br_bfifo_parity       (/*UNUSED*/), // Not tested here
+
+    .br_bfifo_corr_wr_en   (/*UNUSED*/), // Not tested here
+    .br_bfifo_corr_data    (/*UNUSED*/), // Not tested here
+    .br_bfifo_corr_pid     (/*UNUSED*/), // Not tested here
 
     .mod_switch_mean_comp  (1'b0),
 
@@ -368,6 +379,7 @@ module tb_pep_ks_mult_outp;
   logic [LBY-1:0]                      sr_ctrl_mult_eoy;
   logic [LBY-1:0]                      sr_ctrl_mult_last_iter;
   logic [LBY-1:0][TOTAL_BATCH_NB_W-1:0]sr_ctrl_mult_batch_id;
+  logic [LBY-1:0][PID_W-1:0]           sr_ctrl_mult_pid;
 
   logic [LBY-1:0][LBZ-1:0][KS_B_W-1:0] sr_ctrl_mult_dataD;
   logic [LBY-1:0][LBZ-1:0]             sr_ctrl_mult_signD;
@@ -377,6 +389,7 @@ module tb_pep_ks_mult_outp;
   logic [LBY-1:0]                      sr_ctrl_mult_eoyD;
   logic [LBY-1:0]                      sr_ctrl_mult_last_iterD;
   logic [LBY-1:0][TOTAL_BATCH_NB_W-1:0]sr_ctrl_mult_batch_idD;
+  logic [LBY-1:0][PID_W-1:0]           sr_ctrl_mult_pidD;
 
   assign sr_ctrl_mult_dataD      = {sr_ctrl_mult_data[LBY-2:0],in_data_0};
   assign sr_ctrl_mult_signD      = {sr_ctrl_mult_sign[LBY-2:0],in_sign_0};
@@ -385,6 +398,7 @@ module tb_pep_ks_mult_outp;
   assign sr_ctrl_mult_eoyD       = {sr_ctrl_mult_eoy[LBY-2:0],in_eoy_0};
   assign sr_ctrl_mult_last_iterD = {sr_ctrl_mult_last_iter[LBY-2:0],in_last_iter_0};
   assign sr_ctrl_mult_batch_idD  = {sr_ctrl_mult_batch_id[LBY-2:0],in_run_batch_id[TOTAL_BATCH_NB_W-1:0]};
+  assign sr_ctrl_mult_pidD       = {sr_ctrl_mult_pid[LBY-2:0],in_run_pbs_nb[PID_W-1:0]};
 
   always_ff @(posedge clk)
     if (!s_rst_n) sr_ctrl_mult_avail <= '0;
@@ -397,6 +411,7 @@ module tb_pep_ks_mult_outp;
     sr_ctrl_mult_eoy       <= sr_ctrl_mult_eoyD;
     sr_ctrl_mult_last_iter <= sr_ctrl_mult_last_iterD;
     sr_ctrl_mult_batch_id  <= sr_ctrl_mult_batch_idD;
+    sr_ctrl_mult_pid       <= sr_ctrl_mult_pidD;
   end
 
   assign ctrl_mult_data           = sr_ctrl_mult_data;
@@ -406,6 +421,7 @@ module tb_pep_ks_mult_outp;
   assign ctrl_mult_last_eoy       = sr_ctrl_mult_eoy[LBY-1];
   assign ctrl_mult_last_last_iter = sr_ctrl_mult_last_iter[LBY-1];
   assign ctrl_mult_last_batch_id  = sr_ctrl_mult_batch_id[LBY-1];
+  assign ctrl_mult_last_pid       = sr_ctrl_mult_pid[LBY-1];
 
 //---------------------------------------------------
 // Ksk
@@ -432,7 +448,7 @@ module tb_pep_ks_mult_outp;
           .vld        (ksk_vld[gen_x][gen_y]),
           .rdy        (ksk_rdy[gen_x][gen_y]),
 
-          .throughput (1)
+          .throughput (1'b1)
         );
 
         initial begin
@@ -451,6 +467,12 @@ module tb_pep_ks_mult_outp;
 //---------------------------------------------------
   generate
     for (genvar gen_i=0; gen_i<TOTAL_BATCH_NB; gen_i=gen_i+1) begin : gen_bfifo
+      logic [OP_W-1:0]  body_data;
+      logic             body_vld;
+      logic             body_rdy;
+
+      logic             body_fifo_rdy;
+      logic             body_fifo_vld;
 
       stream_source
       #(
@@ -466,11 +488,11 @@ module tb_pep_ks_mult_outp;
         .clk        (clk),
         .s_rst_n    (s_rst_n),
 
-        .data       (bfifo_outp_data[gen_i]),
-        .vld        (bfifo_outp_vld[gen_i]),
-        .rdy        (bfifo_outp_rdy[gen_i]),
+        .data       (body_data),
+        .vld        (body_vld),
+        .rdy        (body_rdy),
 
-        .throughput (1)
+        .throughput (1'b1)
       );
 
       initial begin
@@ -480,8 +502,34 @@ module tb_pep_ks_mult_outp;
         source_bfifo_outp.start(0);
       end
 
+      assign body_fifo_vld = body_vld
+                           & in_avail_0
+                           & in_eol_0
+                           & in_last_bline_cnt
+                           & in_last_bcol_cnt;
+
+      fifo_reg #(
+        .WIDTH(OP_W + PID_W)
+      ) body_fifo (
+        .clk      ( clk                                      ) ,
+        .s_rst_n  ( s_rst_n                                  ) ,
+        .in_data  ( {body_data, PID_W'(in_run_pbs_nb)}       ) ,
+        .in_vld   ( body_fifo_vld                            ) ,
+        .in_rdy   ( body_fifo_rdy                            ) ,
+        .out_data ( {bfifo_outp_data[gen_i], bfifo_outp_pid} ) ,
+        .out_vld  ( bfifo_outp_vld[gen_i]                    ) ,
+        .out_rdy  ( bfifo_outp_rdy[gen_i]                    )
+      );
+
+      always @(posedge clk) if(s_rst_n) begin
+        assert_body_fifo_stall:
+        assert(body_fifo_rdy && body_fifo_vld || !body_fifo_vld)
+        else $fatal(1, "Error> The body fifo [%0d] stalled at %0t",
+                       gen_i, $realtime);
+      end
     end
   endgenerate
+
 
 //---------------------------------------------------
 // br proc
@@ -682,9 +730,9 @@ module tb_pep_ks_mult_outp;
   integer out_pbs_nb_q [TOTAL_BATCH_NB-1:0][$];
   //integer out_pbs_nb2_q [TOTAL_BATCH_NB-1:0][$];
 
-  logic [OP_W-1:0]       bfifo_outp_q   [TOTAL_BATCH_NB-1:0][$];
-  logic [OP_W-1:0]       out_body_q     [TOTAL_BATCH_NB-1:0][$];
-  logic [LWE_COEF_W-1:0] br_bfifo_data_q[TOTAL_BATCH_NB-1:0][$];
+  logic [OP_W-1:0] bfifo_outp_q   [TOTAL_BATCH_NB-1:0][$];
+  logic [OP_W-1:0] out_body_q     [TOTAL_BATCH_NB-1:0][$];
+  logic [OP_W-1:0] br_bfifo_data_q[TOTAL_BATCH_NB-1:0][$];
   logic [LWE_COEF_W-1:0] br_proc_lwe_q  [TOTAL_BATCH_NB-1:0][$];
 
   always_ff @(posedge clk)
@@ -775,20 +823,19 @@ module tb_pep_ks_mult_outp;
     else begin
       for (int b=0; b<TOTAL_BATCH_NB; b=b+1) begin
         if (bfifo_outp_q[b].size() > 0 && out_body_q[b].size() > 0 && br_bfifo_data_q[b].size() > 0) begin
-          logic [OP_W-1:0]       in_body;
-          logic [OP_W-1:0]       coef_body;
-          logic [LWE_COEF_W-1:0] out_body;
-          logic [OP_W-1:0]       ref_body;
+          logic [OP_W-1:0] in_body;
+          logic [OP_W-1:0] coef_body;
+          logic [OP_W-1:0] out_body;
+          logic [OP_W-1:0] ref_body;
           in_body   = bfifo_outp_q[b].pop_front();
           coef_body = out_body_q[b].pop_front();
           out_body  = br_bfifo_data_q[b].pop_front();
           ref_body  = in_body - coef_body;
-          ref_body  = (ref_body >> (OP_W-LWE_COEF_W)) + ref_body[OP_W-LWE_COEF_W-1]; // mod switch
 
           //$display("batch=%0d bfifo_outp=0x%0x",b, in_body);
-          assert(out_body == ref_body[LWE_COEF_W-1:0])
+          assert(out_body == ref_body)
           else begin
-            $display("%t > ERROR: Out body [%0d] proc data mismatches exp=0x%x seen=0x%x.",$time, b, ref_body[LWE_COEF_W-1:0], out_body);
+            $display("%t > ERROR: Out body [%0d] proc data mismatches exp=0x%x seen=0x%x.",$time, b, ref_body, out_body);
             error_out_body[b] <= 1'b1;
           end
         end
