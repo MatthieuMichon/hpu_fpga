@@ -63,7 +63,7 @@
         },
         {
             "name": "hw/module/param/module/param_msg2_carry2_pfail128_132b_tuniform_144a47",
-            "APPLICATION": "APPLI_msg2_carry2_pfail64_132b_tuniform_7e47d8c"
+            "APPLICATION": "APPLI_msg2_carry2_pfail128_132b_tuniform_144a47"
         }
     ],
     "include_dir": []
