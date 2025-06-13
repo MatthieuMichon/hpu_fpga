@@ -869,7 +869,7 @@ if __name__ == '__main__':
 
     if (tool == "vivado"):
         # Modify <my_module>.tcl
-        script = os.path.join(PROJECT_DIR,"hw","script","edalize","hook","hook_post_configure_vivado_compil.sh")
+        script = os.path.join(PROJECT_DIR,"hw","scripts","edalize","hook","hook_post_configure_vivado_compil.sh")
         arg_l = []
         arg_l.append(os.path.join(work_dir,"{:s}.tcl".format(args.top_name)))
         arg_l.append(os.path.join(PROJECT_DIR,"hw","syn","vivado","vivado_properties.tcl"))
@@ -882,7 +882,7 @@ if __name__ == '__main__':
                                           "name": "Modify Vivado build stage",
                                           "env" : {}})
         # Modify <my_module>_synth.tcl
-        script = os.path.join(PROJECT_DIR,"hw","script","edalize","hook","hook_post_configure_vivado_synth.sh")
+        script = os.path.join(PROJECT_DIR,"hw","scripts","edalize","hook","hook_post_configure_vivado_synth.sh")
         arg_l = []
         arg_l.append(os.path.join(work_dir,"{:s}_synth.tcl".format(args.top_name)))
         arg_l.append(os.path.join(work_dir,"{:s}_syn.dcp".format(args.top_name)))
@@ -890,7 +890,7 @@ if __name__ == '__main__':
                                           "name": "Modify Vivado synth stage",
                                           "env" : {}})
         # Modify <my_module>_run.tcl
-        script = os.path.join(PROJECT_DIR,"hw","script","edalize","hook","hook_post_configure_vivado_run.sh")
+        script = os.path.join(PROJECT_DIR,"hw","scripts","edalize","hook","hook_post_configure_vivado_run.sh")
         arg_l = []
         arg_l.append(os.path.join(work_dir,"{:s}_run.tcl".format(args.top_name)))
         arg_l.append(os.path.join(work_dir,"{:s}_impl.dcp".format(args.top_name)))
@@ -901,7 +901,7 @@ if __name__ == '__main__':
     if (tool == "xsim"):
         # if coverage is enabled, run xcrg for the report generation
         if (tool_options_d[tool]["cov"]):
-            script = os.path.join(PROJECT_DIR,"hw","script","edalize","hook","hook_post_run_xsim_coverage_report.sh")
+            script = os.path.join(PROJECT_DIR,"hw","scripts","edalize","hook","hook_post_run_xsim_coverage_report.sh")
             arg_l = []
             arg_l.append(work_dir)
             arg_l.append(args.top_name)
@@ -911,7 +911,7 @@ if __name__ == '__main__':
 
     if (tool == "modelsim"):
         None
-        #script = os.path.join(PROJECT_DIR,"hw","script","edalize","hook","hook_post_build_questa_vopt.sh")
+        #script = os.path.join(PROJECT_DIR,"hw","scripts","edalize","hook","hook_post_build_questa_vopt.sh")
         #arg_l = []
         #arg_l.append(work_dir)
         #arg_l.append(args.top_name)
