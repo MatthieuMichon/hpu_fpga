@@ -171,7 +171,7 @@ source my_venv/bin/activate
 ```
 
 ### Setup
-To prepare your environment, set the bash variables **XILINX_VIVADO_PATH** and **XILINX_VITIS_PATH** with your vivado and vitis installation path.
+To prepare your environment, set the bash variables **XILINX_PATH** with your xilinx installation path.
 
 
 Clone the HPU repository:
