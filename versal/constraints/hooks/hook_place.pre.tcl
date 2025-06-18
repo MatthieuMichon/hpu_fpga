@@ -28,12 +28,15 @@ set PS9_IRQ_pin [get_pins -of [get_cells -hierarchical PS9_inst -filter { PARENT
 
 set SHELL_VER $::env(SHELL_VER)
 
-if {[llength ${PS9_IRQ_pin}] == 1} {
-    disconnect_net -objects ${PS9_IRQ_pin}
-    connect_net -hierarchical -net [get_nets -of [get_pins -hierarchical -regexp -filter { NAME =~ ".*/clock_reset/pcie_mgmt_pdi_reset/and_0/Res" }]] -objects ${PS9_IRQ_pin}
+if [string match "2025.1" $::env(XILINX_TOOL_VERSION)] {
 } else {
-    puts "Unable to get PMCPLIRQ pin for Force Reset rewiring."
-    error
+    if {[llength ${PS9_IRQ_pin}] == 1} {
+        disconnect_net -objects ${PS9_IRQ_pin}
+        connect_net -hierarchical -net [get_nets -of [get_pins -hierarchical -regexp -filter { NAME =~ ".*/clock_reset/pcie_mgmt_pdi_reset/and_0/Res" }]] -objects ${PS9_IRQ_pin}
+    } else {
+        puts "Unable to get PMCPLIRQ pin for Force Reset rewiring."
+        error
+    }
 }
 
 ### pblocks

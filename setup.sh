@@ -17,12 +17,8 @@ echo "| HPU project setup                             |"
 echo "-------------------------------------------------"
 echo "#################################################"
 
-if [ -z ${XILINX_VIVADO_PATH+x} ] ; then
-    echo "ERROR > \$XILINX_VIVADO_PATH is not defined."
-    return 1
-fi
-if [ -z ${XILINX_VITIS_PATH+x} ] ; then
-    echo "ERROR > \$XILINX_VITIS_PATH is not defined."
+if [ -z ${XILINX_PATH+x} ] ; then
+    echo "ERROR > \$XILINX_PATH is not defined."
     return 1
 fi
 
@@ -46,8 +42,16 @@ export PROJECT_SYN_TOOL="vivado"
 export PROJECT_TOP_SYN_TOOL="vitis"
 
 # Necessary for Xilinx tools to work correctly
-export XILINX_VIVADO=${XILINX_VIVADO:-${XILINX_VIVADO_PATH}/${XILINX_TOOL_VERSION}}
-export XILINX_VITIS=${XILINX_VITIS_PATH:-${XILINX_VITIS_PATH}/${XILINX_TOOL_VERSION}}
+# Note: Xilinx directory organization has changed from version 2025.1.
+XILINX_TOOL_VERSION_MAJ=$( printf "%.0f" $XILINX_TOOL_VERSION )
+if [[ $(($XILINX_TOOL_VERSION_MAJ)) -gt 2024 ]] ; then
+    export XILINX_VIVADO=${XILINX_VIVADO:-${XILINX_PATH}/${XILINX_TOOL_VERSION}}/Vivado
+    export XILINX_VITIS=${XILINX_VITIS:-${XILINX_PATH}/${XILINX_TOOL_VERSION}}/Vitis
+else
+    export XILINX_VIVADO=${XILINX_VIVADO:-${XILINX_PATH}/Vivado/${XILINX_TOOL_VERSION}}
+    export XILINX_VITIS=${XILINX_VITIS:-${XILINX_PATH}/Vitis/${XILINX_TOOL_VERSION}}
+fi
+
 
 # Microblaze configuration
 export MICROBLAZE_CONF="ublaze"
