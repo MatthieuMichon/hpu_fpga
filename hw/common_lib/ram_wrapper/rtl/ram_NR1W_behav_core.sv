@@ -45,10 +45,6 @@ module ram_NR1W_behav_core #(
   // (* ram_style = distributed *)
   logic [WIDTH-1:0] ram [DEPTH];
 
-  // The FPGA will init the RAM contents to the value at global reset
-  initial for(int unsigned i = 0; i < DEPTH; i++)
-    ram[i] = RST_VAL;
-
   generate if(HAS_RST) begin: with_reset
 
     always @(posedge clk)
