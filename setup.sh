@@ -45,8 +45,8 @@ export PROJECT_TOP_SYN_TOOL="vitis"
 # Note: Xilinx directory organization has changed from version 2025.1.
 XILINX_TOOL_VERSION_MAJ=$( printf "%.0f" $XILINX_TOOL_VERSION )
 if [[ $(($XILINX_TOOL_VERSION_MAJ)) -gt 2024 ]] ; then
-    export XILINX_VIVADO=${XILINX_VIVADO:-${XILINX_PATH}/${XILINX_TOOL_VERSION}}/Vivado
-    export XILINX_VITIS=${XILINX_VITIS:-${XILINX_PATH}/${XILINX_TOOL_VERSION}}/Vitis
+    export XILINX_VIVADO=${XILINX_VIVADO:-${XILINX_PATH}/${XILINX_TOOL_VERSION}/Vivado}
+    export XILINX_VITIS=${XILINX_VITIS:-${XILINX_PATH}/${XILINX_TOOL_VERSION}/Vitis}
 else
     export XILINX_VIVADO=${XILINX_VIVADO:-${XILINX_PATH}/Vivado/${XILINX_TOOL_VERSION}}
     export XILINX_VITIS=${XILINX_VITIS:-${XILINX_PATH}/Vitis/${XILINX_TOOL_VERSION}}
@@ -57,9 +57,6 @@ fi
 export MICROBLAZE_CONF="ublaze"
 # for compilation using Vitis
 export LC_ALL="C"
-
-# Xilinx RunTime Setup
-export XRT_INI_PATH=${PROJECT_DIR}/xrt/xrt.ini
 
 # Vitis Setup
 # on AWS setup.sh is sourced from their Toolset
@@ -125,7 +122,6 @@ echo "  PROJECT_SYN_TOOL=$PROJECT_SYN_TOOL"
 echo "  PROJECT_TOP_SYN_TOOL=$PROJECT_TOP_SYN_TOOL"
 echo "  XILINX_VIVADO=$XILINX_VIVADO"
 echo "  XILINX_VITIS=$XILINX_VITIS"
-echo "  XRT_INI_PATH=$XRT_INI_PATH"
 echo "  VITIS_TARGET=$VITIS_TARGET"
 echo "  MICROBLAZE_CONF=$MICROBLAZE_CONF"
 echo "  TV_HW_VERSION=${TV_HW_VERSION}"

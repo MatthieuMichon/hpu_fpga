@@ -11,13 +11,6 @@ export SHELL_VER=hpu_plug
 export XILINX_TOOL_VERSION=2024.2
 export SNPS_TOOL_VERSION=V-2023.12-SP2
 
-if [[ -z "$XILINX_XRT_PATH" ]]; then
-  echo "INFO > XILINX_XRT_PATH does not exist, cannot source <XILINX_XRT_PATH>/setup.sh"
-else
-  echo "INFO > source $XILINX_XRT_PATH/setup.sh"
-  source $XILINX_XRT_PATH/setup.sh
-fi
-
 echo "#################################################"
 echo "# setup_base.sh"
 echo "# Export global variables:"
