@@ -14,6 +14,7 @@
         "hw/common_lib/common_package",
         "hw/simu_lib/simu_base",
         "hw/simu_lib/stream_lib",
+        "hw/module/pep_mono_mult_acc/simu/tb_pep_mmacc_body_ram/gen",
         "hw/module/param",
         "hw/module/pe_pbs/module/pep_common",
         "hw/module/pep_mono_mult_acc/module/pep_mmacc_misc"

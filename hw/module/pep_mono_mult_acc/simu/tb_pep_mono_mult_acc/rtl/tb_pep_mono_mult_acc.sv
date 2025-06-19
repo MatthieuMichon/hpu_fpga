@@ -49,6 +49,7 @@ module tb_pep_mono_mult_acc;
   localparam int SAMPLE_RANDOM_NB     = 200;
   localparam int SAMPLE_NB       = SAMPLE_THROUGHPUT_NB + SAMPLE_RANDOM_NB;
   parameter  int DATA_RAND_RANGE = 1023;
+  localparam int DATA_RAND_RANGE_W = $clog2(DATA_RAND_RANGE+1);
   parameter  int INST_THROUGHPUT = DATA_RAND_RANGE / 50; // 0 : random, 1: very rare, RAND_RANGE : always valid
   localparam int NTT_SR_DEPTH    = 100;
 
@@ -63,6 +64,7 @@ module tb_pep_mono_mult_acc;
 
   parameter  int SLR_LATENCY          = 2*2;
   parameter  bit USE_BPIP             = 1'b0;
+  parameter  bit USE_BPIP_OPPORTUNISM = 1'b0;
   parameter  [31:0] TIMEOUT           = 'hFFFFF;
 
   initial begin
@@ -196,9 +198,13 @@ module tb_pep_mono_mult_acc;
 
   // From KS
   logic                                                   ks_boram_wr_en;
-  logic [LWE_COEF_W-1:0]                                  ks_boram_data;
+  logic [MOD_KSK_W-1:0]                                   ks_boram_data;
   logic [PID_W-1:0]                                       ks_boram_pid;
   logic                                                   ks_boram_parity;
+
+  logic                                                   seq_boram_corr_wr_en;
+  logic [KS_MAX_ERROR_W-1:0]                              seq_boram_corr_data;
+  logic [PID_W-1:0]                                       seq_boram_corr_pid;
 
   // BSK
   logic                                                   inc_bsk_wr_ptr;
@@ -346,6 +352,10 @@ module tb_pep_mono_mult_acc;
     .ks_boram_pid               (ks_boram_pid),
     .ks_boram_parity            (ks_boram_parity),
 
+    .seq_boram_corr_wr_en       (seq_boram_corr_wr_en),
+    .seq_boram_corr_data        (seq_boram_corr_data),
+    .seq_boram_corr_pid         (seq_boram_corr_pid),
+
     .inc_bsk_wr_ptr             (inc_bsk_wr_ptr),
     .inc_bsk_rd_ptr             (inc_bsk_rd_ptr),
 
@@ -362,6 +372,7 @@ module tb_pep_mono_mult_acc;
     .s_rst_n             (s_rst_n),
 
     .use_bpip            (USE_BPIP),
+    .use_bpip_opportunism(USE_BPIP_OPPORTUNISM),
     .bpip_timeout        ('hFFFFF),
 
     .inst                (inst),
@@ -401,7 +412,12 @@ module tb_pep_mono_mult_acc;
     .bsk_if_batch_start_1h(/*UNUSED*/),
     .ksk_if_batch_start_1h(/*UNUSED*/),
 
+    .seq_boram_corr_wr_en(seq_boram_corr_wr_en),
+    .seq_boram_corr_data (seq_boram_corr_data),
+    .seq_boram_corr_pid  (seq_boram_corr_pid),
+
     .reset_cache         (reset_cache),
+    .reset_ks            (/*UNUSED*/),
 
     .seq_error           (seq_error),
     .seq_rif_info        (/*UNUSED*/),
@@ -773,7 +789,7 @@ module tb_pep_mono_mult_acc;
       .vld       (inst_vld),
       .rdy       (inst_rdy),
 
-      .throughput(INST_THROUGHPUT)
+      .throughput(DATA_RAND_RANGE_W'(INST_THROUGHPUT))
   );
 
   initial begin
@@ -876,6 +892,7 @@ module tb_pep_mono_mult_acc;
   integer     ks_res_loop;
   integer     ks_res_loopD;
   logic [BATCH_PBS_NB-1:0][LWE_COEF_W-1:0] ks_res_lwe_a;
+  logic [BATCH_PBS_NB-1:0][KS_MAX_ERROR_W-1:0] ks_res_corr_a;
   pointer_t                                ks_res_wp;
   pointer_t                                ks_res_rp;
 
@@ -894,11 +911,13 @@ module tb_pep_mono_mult_acc;
     for (int i=0; i<BATCH_PBS_NB; i=i+1) begin
       ks_res_lwe_a[i][3:0]            = (ks_res_rp + i);
       ks_res_lwe_a[i][LWE_COEF_W-1:4] = ks_res_loop;
+      ks_res_corr_a[i]                = i;
     end
 
   assign ks_res_vld_tmp = |ks_cmd_avail_sr[KS_LATENCY +: LBX];
   assign ks_res_vld     = ks_res_vld_tmp & (ks_res_loop < LWE_K);
   assign ks_res.lwe_a   = ks_res_lwe_a;
+  assign ks_res.corr_a  = ks_res_corr_a;
   assign ks_res.ks_loop = ks_res_loop;
   assign ks_res.wp      = ks_res_wp;
   assign ks_res.rp      = ks_res_rp;

@@ -75,6 +75,11 @@ module pep_sequencer
   input  logic                        reset_cache,
   output logic                        reset_ks,
 
+  // Wr correction to body RAM
+  output logic                        seq_boram_corr_wr_en,
+  output logic [KS_MAX_ERROR_W-1:0]   seq_boram_corr_data,
+  output logic [PID_W-1:0]            seq_boram_corr_pid,
+
   // Error
   output pep_seq_error_t              seq_error,
 
@@ -96,6 +101,8 @@ module pep_sequencer
   localparam int TOTAL_PBS_NB_DIFF  = TOTAL_PBS_NB_EXT - TOTAL_PBS_NB;
 
   localparam int RANK_OFS_INC       = (TOTAL_PBS_NB/GRAM_NB) % RANK_NB;
+
+  localparam int CORR_BUF_DEPTH     = 2; // 1 free location + 1 waiting.
 
 // Check
   generate
@@ -120,18 +127,27 @@ module pep_sequencer
   // status == PID_LD_DONE => indicates the ks_br_loop from which the ct is ready for the PBS process
   // status == PID_PBS     => indicates current iteration 0 : first, LWE-1 : last
   typedef struct packed {
-    logic                    avail;
-    logic                    br_loop_avail;
-    logic                    force_pbs;
-    logic [LWE_COEF_W-1:0]   lwe;
-    logic [RID_W-1:0]        dst_rid;
-    logic [LOG_LUT_NB_W-1:0] log_lut_nb;
-    logic                    br_loop_c; // start loop parity
-    logic [LWE_K_W-1:0]      br_loop; // start loop index
-    logic [PID_W-1:0]        pid;
+    logic                      avail;
+    logic                      br_loop_avail;
+    logic                      force_pbs;
+    logic [LWE_COEF_W-1:0]     lwe;
+    logic [KS_MAX_ERROR_W-1:0] corr;
+    logic [RID_W-1:0]          dst_rid;
+    logic [LOG_LUT_NB_W-1:0]   log_lut_nb;
+    logic                      br_loop_c; // start loop parity
+    logic [LWE_K_W-1:0]        br_loop; // start loop index
+    logic [PID_W-1:0]          pid;
   } ct_info_t;
 
   localparam int CT_INFO_W = $bits(ct_info_t);
+
+  typedef struct packed {
+    logic                      avail;
+    logic [KS_MAX_ERROR_W-1:0] corr;
+    logic [PID_W-1:0]          pid;
+  } corr_elt_t;
+
+  localparam int CORR_ELT_W = $bits(corr_elt_t);
 
 // ============================================================================================== //
 // Function
@@ -1131,17 +1147,24 @@ module pep_sequencer
   logic               pbs_in_cmd_regular;
   logic               pbs_in_empty;
 
-  assign pbs_in_empty        = pt_empty(pbs_in_wp,pbs_in_rp);
+  logic               corr_buffer_free_loc;
+
+  assign pbs_in_empty       = pt_empty(pbs_in_wp,pbs_in_rp);
   assign pbs_in_cmd_regular = ~pbs_in_empty;
   assign pbs_in_cmd_flush   = pbs_in_empty & (ks_out_wp == pbs_in_wp) & (pool_rp == pbs_in_rp);
-  assign r0_send_cmd_tmp     = pbs_send_st_idle & (pbs_in_st_idle & ~pbs_in_do_update) & (ks_out_loop == pbs_in_loop) & (pbs_in_cmd_regular | pbs_in_cmd_flush);
-  assign r0_send_cmd         = r0_send_cmd_tmp & pbs_cmd_enq_vld;
-  assign pbs_cmd_enq_rdy     = r0_send_cmd_tmp;
+  assign r0_send_cmd_tmp    = pbs_send_st_idle
+                             & corr_buffer_free_loc
+                             & (pbs_in_st_idle & ~pbs_in_do_update)
+                             & (ks_out_loop == pbs_in_loop)
+                             & (pbs_in_cmd_regular | pbs_in_cmd_flush);
+  assign r0_send_cmd        = r0_send_cmd_tmp & pbs_cmd_enq_vld;
+  assign pbs_cmd_enq_rdy    = r0_send_cmd_tmp;
 
 // ---------------------------------------------------------------------------------------------- //
 // Prepare map
 // ---------------------------------------------------------------------------------------------- //
   // Build the map that will be used by the PBS process.
+  // Collect the corrections for the mean compensation.
 
   //== Step 0
   logic [TOTAL_PBS_NB_EXT-1:0]                           r0_mask;
@@ -1199,6 +1222,7 @@ module pep_sequencer
   logic [BPBS_NB_WW-1:0]                 r1_last_nb;
   logic [LWE_K_W-1:0]                    pbs_in_last_loop;
   logic [PID_WW-1:0]                     r1_ct_nb;
+  corr_elt_t [RANK_NB-1:0][GRAM_NB-1:0]  r1_corr_map;
 
   always_ff @(posedge clk) begin
     r1_rot       <= r0_rot;
@@ -1220,6 +1244,10 @@ module pep_sequencer
         r1_map_tmp[i][j].lwe            = r1_pool_wrap[i][j].lwe;
         r1_map_tmp[i][j].dst_rid        = r1_pool_wrap[i][j].dst_rid;
         r1_map_tmp[i][j].log_lut_nb     = r1_pool_wrap[i][j].log_lut_nb;
+
+        r1_corr_map[i][j].avail         = r1_pool_wrap[i][j].avail;
+        r1_corr_map[i][j].corr          = r1_pool_wrap[i][j].corr;
+        r1_corr_map[i][j].pid           = r1_pool_wrap[i][j].pid;
       end
 
   // Rotate
@@ -1360,14 +1388,17 @@ module pep_sequencer
   assign ks_upd_st_upd  = ks_upd_state == KS_UPD_UPD;
 
   //== Step 0 :
-  logic [TOTAL_PBS_NB-1:0]                             t0_upd_mask;
-  logic [TOTAL_PBS_NB-1:0]                             t0_upd_mask_wp;
-  logic [TOTAL_PBS_NB-1:0]                             t0_upd_mask_rpB;
-  logic [TOTAL_PBS_NB-1:0][LWE_COEF_W-1:0]             t0_upd_pool_lwe;
-  logic [TOTAL_PBS_NB-1:-TOTAL_PBS_NB][LWE_COEF_W-1:0] t0_upd_pool_lwe_tmp;
-  logic [TOTAL_PBS_NB-1:0][LWE_COEF_W-1:0]             t0_ks_res_lwe_ext;
-  logic [TOTAL_PBS_NB-1:0]                             t1_upd_pool_lwe_mh;
-  logic [TOTAL_PBS_NB-1:0]                             t1_upd_pool_lwe_mhD;
+  logic [TOTAL_PBS_NB-1:0]                                 t0_upd_mask;
+  logic [TOTAL_PBS_NB-1:0]                                 t0_upd_mask_wp;
+  logic [TOTAL_PBS_NB-1:0]                                 t0_upd_mask_rpB;
+  logic [TOTAL_PBS_NB-1:0][LWE_COEF_W-1:0]                 t0_upd_pool_lwe;
+  logic [TOTAL_PBS_NB-1:0][KS_MAX_ERROR_W-1:0]             t0_upd_pool_corr;
+  logic [TOTAL_PBS_NB-1:-TOTAL_PBS_NB][LWE_COEF_W-1:0]     t0_upd_pool_lwe_tmp;
+  logic [TOTAL_PBS_NB-1:-TOTAL_PBS_NB][KS_MAX_ERROR_W-1:0] t0_upd_pool_corr_tmp;
+  logic [TOTAL_PBS_NB-1:0][LWE_COEF_W-1:0]                 t0_ks_res_lwe_ext;
+  logic [TOTAL_PBS_NB-1:0][KS_MAX_ERROR_W-1:0]             t0_ks_res_corr_ext;
+  logic [TOTAL_PBS_NB-1:0]                                 t1_upd_pool_lwe_mh;
+  logic [TOTAL_PBS_NB-1:0]                                 t1_upd_pool_lwe_mhD;
 
   assign t0_do_upd_lwe = ks_res_vld & (ks_out_loop != pbs_in_loop);
   assign t0_upd_mask_rpB = {TOTAL_PBS_NB{1'b1}} << ks_res.rp.pt;
@@ -1377,20 +1408,25 @@ module pep_sequencer
   assign t0_ks_res_lwe_ext = ks_res.lwe_a; // extend with 0s
   assign t0_upd_pool_lwe_tmp = {2{t0_ks_res_lwe_ext}};
 
+  assign t0_ks_res_corr_ext = ks_res.corr_a; // extend with 0s
+  assign t0_upd_pool_corr_tmp = {2{t0_ks_res_corr_ext}};
+
   // Rotation
   always_comb
     for (int i=0; i<TOTAL_PBS_NB; i=i+1) begin
       int idx; // signed
       idx = i-ks_res.rp.pt;
-      t0_upd_pool_lwe[i] = t0_upd_pool_lwe_tmp[idx];
+      t0_upd_pool_lwe[i]  = t0_upd_pool_lwe_tmp[idx];
+      t0_upd_pool_corr[i] = t0_upd_pool_corr_tmp[idx];
     end
 
-  assign t1_upd_pool_lwe_mhD = t0_upd_mask & {TOTAL_PBS_NB{t0_do_upd_lwe}};
+  assign t1_upd_pool_lwe_mhD  = t0_upd_mask & {TOTAL_PBS_NB{t0_do_upd_lwe}};
 
   //== Step 1
   // Update ks_out pointers
   // Update ct_pool lwe field
-  logic [TOTAL_PBS_NB-1:0][LWE_COEF_W-1:0] t1_upd_pool_lwe;
+  logic [TOTAL_PBS_NB-1:0][LWE_COEF_W-1:0]     t1_upd_pool_lwe;
+  logic [TOTAL_PBS_NB-1:0][KS_MAX_ERROR_W-1:0] t1_upd_pool_corr;
   pointer_t              ks_out_wpD;
   pointer_t              ks_out_rpD;
   logic [LWE_K_P1_W-1:0] ks_out_loopD;
@@ -1415,8 +1451,10 @@ module pep_sequencer
     if (!s_rst_n || reset_clear) ks_out_loop <= LWE_K-1;
     else                         ks_out_loop <= ks_out_loopD;
 
-  always_ff @(posedge clk)
-    t1_upd_pool_lwe <= t0_upd_pool_lwe;
+  always_ff @(posedge clk) begin
+    t1_upd_pool_lwe  <= t0_upd_pool_lwe;
+    t1_upd_pool_corr <= t0_upd_pool_corr;
+  end
 
   assign ks_res_rdy = ks_upd_st_upd;
 
@@ -1513,8 +1551,10 @@ module pep_sequencer
         ct_poolD[i].br_loop       = pbs_in_loop;
         ct_poolD[i].br_loop_avail = 1'b1;
       end
-      if (t1_upd_pool_lwe_mh[i])
+      if (t1_upd_pool_lwe_mh[i]) begin
         ct_poolD[i].lwe           = t1_upd_pool_lwe[i];
+        ct_poolD[i].corr          = t1_upd_pool_corr[i];
+      end
     end
 
 // ============================================================================================== //
@@ -1626,6 +1666,95 @@ module pep_sequencer
                           | (seq_ks_latest_in_wp != ks_out_wp)
                           | (seq_ks_latest_max_in_loop != ks_out_loop)
                           | ks_res_vld;
+
+// ============================================================================================== //
+// Send correction.
+// ============================================================================================== //
+// Map containing the corrections is available when pbs_send_st_wrap = 1.
+// The correction is in r1_corr_map;
+// Store the correction in a buffer. Send 1 correction per cycle.
+  corr_elt_t [CORR_BUF_DEPTH-1:0][RANK_NB*GRAM_NB-1:0] corr_buffer;
+  logic      [CORR_BUF_DEPTH-1:0]                      corr_buffer_avail;
+  corr_elt_t [RANK_NB*GRAM_NB-1:0]                     corr_sr;
+  logic      [RANK_NB*GRAM_NB-1:0]                     corr_sr_avail;
+
+  corr_elt_t [CORR_BUF_DEPTH-1:0][RANK_NB*GRAM_NB-1:0] corr_bufferD;
+  logic      [CORR_BUF_DEPTH-1:0]                      corr_buffer_availD;
+  corr_elt_t [RANK_NB*GRAM_NB-1:0]                     corr_srD;
+  logic      [RANK_NB*GRAM_NB-1:0]                     corr_sr_availD;
+
+  logic      [CORR_BUF_DEPTH-1:0]                      corr_buffer_do_shift;
+  logic      [CORR_BUF_DEPTH-1:-1]                     corr_buffer_do_shift_ext;
+  logic                                                corr_sr_do_sample;
+
+  logic      [CORR_BUF_DEPTH:0]                        corr_buffer_avail_ext;
+  corr_elt_t [CORR_BUF_DEPTH:0][RANK_NB*GRAM_NB-1:0]   corr_buffer_ext;
+
+  assign corr_buffer_avail_ext = {pbs_send_st_wrap, corr_buffer_avail};
+  assign corr_buffer_ext       = {r1_corr_map, corr_buffer};
+  assign corr_buffer_do_shift_ext = {corr_buffer_do_shift,corr_sr_do_sample};
+
+  always_comb
+    for (int i=0; i<CORR_BUF_DEPTH; i=i+1)
+      corr_buffer_do_shift[i] = ~corr_buffer_avail[i] & corr_buffer_avail_ext[i+1];
+
+  // Note: there is no need to rush here: wait for the sr to be empty
+  // before reloading it.
+  assign corr_sr_do_sample    = corr_sr_avail == '0;
+  assign corr_buffer_free_loc = ~corr_buffer_avail[CORR_BUF_DEPTH-1];
+
+  // avail field is not used here. Will be simplified by the synthesizer.
+  assign corr_srD = (corr_sr_do_sample && corr_buffer_avail[0]) ? corr_buffer[0] : // sample
+                    corr_sr_avail != '0 ? {CORR_ELT_W'(0), corr_sr[RANK_NB*GRAM_NB-1:1]}: // shift
+                    corr_sr;
+
+  always_comb
+    for (int i=0; i<RANK_NB*GRAM_NB; i=i+1)
+      corr_sr_availD[i] = (corr_sr_do_sample && corr_buffer_avail[0]) ? corr_buffer[0][i].avail : // sample
+                          corr_sr_avail != '0 ? i == RANK_NB*GRAM_NB-1 ? 1'b0 : corr_sr[i+1].avail: // shift
+                          corr_sr_avail[i];
+
+  always_comb
+    for (int i=0; i<CORR_BUF_DEPTH; i=i+1) begin
+      corr_buffer_availD[i] = corr_buffer_do_shift[i] ? corr_buffer_avail_ext[i+1] :
+                              corr_buffer_do_shift_ext[i-1] ? 1'b0 :
+                              corr_buffer_avail[i];
+      corr_bufferD[i]       = corr_buffer_do_shift[i] ? corr_buffer_ext[i+1] :
+                              corr_buffer[i];
+    end
+
+  always_ff @(posedge clk)
+    if (!s_rst_n) begin
+      corr_sr_avail     <= '0;
+      corr_buffer_avail <= '0;
+    end
+    else begin
+      corr_sr_avail     <= corr_sr_availD    ;
+      corr_buffer_avail <= corr_buffer_availD;
+    end
+
+  always_ff @(posedge clk) begin
+    corr_buffer <= corr_bufferD;
+    corr_sr     <= corr_srD;
+  end
+
+  // Send correction
+  logic                        seq_boram_corr_wr_enD;
+  logic [KS_MAX_ERROR_W-1:0]   seq_boram_corr_dataD;
+  logic [PID_W-1:0]            seq_boram_corr_pidD;
+
+  assign seq_boram_corr_wr_enD = corr_sr_avail[0];
+  assign seq_boram_corr_dataD  = corr_sr[0].corr;
+  assign seq_boram_corr_pidD   = corr_sr[0].pid;
+
+  always_ff @(posedge clk)
+    if (!s_rst_n) seq_boram_corr_wr_en <= 1'b0;
+    else          seq_boram_corr_wr_en <= seq_boram_corr_wr_enD;
+
+  always_ff @(posedge clk) begin
+    seq_boram_corr_data <= seq_boram_corr_dataD;
+    seq_boram_corr_pid  <= seq_boram_corr_pidD;
+  end
 
 // ============================================================================================== //
 // Assertion

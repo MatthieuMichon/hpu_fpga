@@ -89,6 +89,23 @@ package pep_common_param_pkg;
   // and consumer)
   localparam int BATCH_CMD_BUFFER_DEPTH = TOTAL_BATCH_NB < 4 ? 4 : TOTAL_BATCH_NB;
 
+  // ------------------------------------------------------------------------------------------- --
+  // Mean compensation configuration
+  // ------------------------------------------------------------------------------------------- --
+  // Mean correction related
+  localparam logic [127:0] KS_MAX_ABS_ERROR = (2**(MOD_KSK_W - LWE_COEF_W - 1) * LWE_K);
+  localparam int unsigned KS_MAX_ERROR_W    = unsigned'($clog2(KS_MAX_ABS_ERROR+1) + 1); // The mod_switch_error is signed
+
+  // The KS key mean is encoded in fixed point. The final encoded value is:
+  //  KS_KEY_MEAN * 2**-KS_KEY_MEAN_F
+  localparam real         KS_KEY_MEAN_R = 0.5;
+  localparam int unsigned KS_KEY_MEAN_W = 1;
+  localparam int unsigned KS_KEY_MEAN_F = 1; // Fixed point location index
+  localparam int unsigned KS_KEY_MEAN   = KS_KEY_MEAN_R * (1 << KS_KEY_MEAN_F);
+  // Note: An implicit convertion from a floating point value to an integer is implicitly
+  // rounded as stated in the system verilog standard.
+  // "Implicit conversion shall take place when a real number is assigned to an integer. The ties
+  // shall be rounded away from zero."
 //==================================================
 // Structure
 //==================================================
@@ -128,6 +145,7 @@ package pep_common_param_pkg;
   localparam int KS_CMD_W = $bits(ks_cmd_t);
 
   typedef struct packed {
+    logic [BATCH_PBS_NB-1:0][KS_MAX_ERROR_W-1:0] corr_a;
     logic [BATCH_PBS_NB-1:0][LWE_COEF_W-1:0] lwe_a;
     logic [LWE_K_P1_W-1:0]                   ks_loop;
     pointer_t                                wp;

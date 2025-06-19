@@ -30,6 +30,7 @@ echo "Options are:"
 echo "-h                       : print this help."
 echo "-z                       : Do not generate stimuli."
 echo "-C                       : Clean gen directory once the simulation is done."
+echo "-K                       : LWE_K."
 echo "-s                       : seed (if not given, random value.)"
 echo "-- <run_edalize options> : run_edalize options."
 
@@ -46,9 +47,10 @@ run_edalize_args=""
 GEN_STIMULI=1
 SEED=-1
 CLEAN=0
+LWE_K=30
 
 # Initialize your own variables here:
-while getopts "hzs:C" opt; do
+while getopts "hzs:K:C" opt; do
   case "$opt" in
     h)
       usage
@@ -64,6 +66,9 @@ while getopts "hzs:C" opt; do
       ;;
     s)
       SEED=$OPTARG
+      ;;
+    K)
+      LWE_K=$OPTARG
       ;;
     :)
       echo "$0: Must supply an argument to -$OPTARG." >&2
@@ -120,6 +125,40 @@ echo -n "" > $TMP_FILE
 ###################################################################################################
 # Generate package
 ###################################################################################################
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
+
+INFO_DIR=${SCRIPT_DIR}/../gen/info
+mkdir -p $INFO_DIR
+RTL_DIR=${SCRIPT_DIR}/../gen/rtl
+mkdir -p $RTL_DIR
+
+# Create package
+if [ $GEN_STIMULI -eq 1 ] ; then
+  pkg_cmd="python3 ${PROJECT_DIR}/hw/module/param/scripts/gen_param_tfhe_definition_pkg.py -f \
+                  -K $LWE_K \
+                  -o ${RTL_DIR}/param_tfhe_definition_pkg.sv"
+  echo "INFO> LWE_K=${LWE_K}"
+  echo "INFO> Creating param_tfhe_definition_pkg.sv"
+  echo "INFO> Running : $pkg_cmd"
+  $pkg_cmd || exit 1
+
+  # Create the associated file_list.json
+  echo ""
+  file_list_cmd="${PROJECT_DIR}/hw/scripts/create_module/create_file_list.py\
+                -o ${INFO_DIR}/file_list.json \
+                -p ${RTL_DIR} \
+                -R param_tfhe_definition_pkg.sv simu 0 1 \
+                -F param_tfhe_definition_pkg.sv APPLICATION APPLI_simu"
+  echo "INFO> Running : $file_list_cmd"
+  $file_list_cmd || exit 1
+
+  echo ""
+
+else
+  echo "INFO> Using existing ${RTL_DIR}/param_tfhe_definition_pkg.sv"
+fi
+
+eda_args="$eda_args -F APPLICATION APPLI_simu"
 
 ###################################################################################################
 # Generate stimuli

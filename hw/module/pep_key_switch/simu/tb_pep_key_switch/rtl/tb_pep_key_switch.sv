@@ -18,7 +18,6 @@ module tb_pep_key_switch;
 // ============================================================================================== --
 // localparam / parameter
 // ============================================================================================== --
-  parameter  int OP_W             = MOD_Q_W;
   parameter  int BLWE_RAM_DEPTH   = KS_BLOCK_LINE_NB * TOTAL_PBS_NB;
   localparam int BLWE_RAM_ADD_W   = $clog2(BLWE_RAM_DEPTH);
   parameter  int DATA_LATENCY     = 6; // BLRAM access read latency
@@ -33,6 +32,8 @@ module tb_pep_key_switch;
 
   parameter  int SAMPLE_CMD_NB   = ((LWE_K_P1 + LBX-1) / LBX) * 4;
 
+  parameter  bit USE_MEAN_COMP = 1'b0;
+
   localparam int PBS_SUBW_NB     = (BLWE_K_P1+BLWE_SUBW_COEF_NB-1)/BLWE_SUBW_COEF_NB;
   localparam int KSK_BLOCK_NB_PER_SLOT = KS_LG_NB * KS_BLOCK_LINE_NB * LBX;
 
@@ -42,6 +43,7 @@ module tb_pep_key_switch;
 
   localparam int    DATA_RAND_RANGE = 1023;
   localparam string FILE_DATA_TYPE  = "ascii_hex";
+  localparam int    DATA_RAND_RANGE_W = $clog2(DATA_RAND_RANGE+1);
 
   generate
     if (PBS_SUBW_NB < 2) begin : __UNSUPPORTED_PBS_SUBW_NB_
@@ -206,10 +208,7 @@ module tb_pep_key_switch;
   logic                                            boram_wr_en;
   logic [MOD_KSK_W-1:0]                            boram_data;
   logic [PID_W-1:0]                                boram_pid;
-
-  logic                                            boram_corr_wr_en;
-  logic [KS_MAX_ERROR_W-1:0]                       boram_corr_data;
-  logic [PID_W-1:0]                                boram_corr_pid;
+  logic                                            boram_parity;
 
 // ============================================================================================== --
 // Design under test instance
@@ -254,12 +253,10 @@ module tb_pep_key_switch;
     .boram_wr_en           (boram_wr_en),
     .boram_data            (boram_data),
     .boram_pid             (boram_pid),
-
-    .boram_corr_wr_en      (boram_corr_wr_en),
-    .boram_corr_data       (boram_corr_data),
-    .boram_corr_pid        (boram_corr_pid),
+    .boram_parity          (boram_parity),
 
     .reset_cache           ('0), // Not checked here
+    .mod_switch_mean_comp  (USE_MEAN_COMP),
 
     .ks_error              (error_ks)
   );
@@ -408,7 +405,7 @@ module tb_pep_key_switch;
 // ---------------------------------------------------------------------------------------------- --
 // fill_in_data
 // ---------------------------------------------------------------------------------------------- --
-// Do this to avoid to much memory usage
+// Do this to avoid too much memory usage
 /*  logic fill_in_data;
   logic start_dly;
 
@@ -554,7 +551,7 @@ module tb_pep_key_switch;
           .vld        (ksk_vld[gen_x][gen_y]),
           .rdy        (ksk_rdy[gen_x][gen_y]),
 
-          .throughput (DATA_RAND_RANGE)
+          .throughput (DATA_RAND_RANGE_W'(DATA_RAND_RANGE))
         );
 
         initial begin
@@ -591,7 +588,7 @@ module tb_pep_key_switch;
       .rdy        (ks_seq_result_rdy),
 
       .error      (/*UNUSED*/),
-      .throughput (DATA_RAND_RANGE/10)
+      .throughput (DATA_RAND_RANGE_W'(DATA_RAND_RANGE/10))
   );
 
   initial begin

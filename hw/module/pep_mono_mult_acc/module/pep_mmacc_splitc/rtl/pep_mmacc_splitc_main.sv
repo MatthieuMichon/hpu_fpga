@@ -23,7 +23,6 @@ module pep_mmacc_splitc_main
   import ntt_core_common_param_pkg::*;
   import top_common_param_pkg::*;
   import pep_common_param_pkg::*;
-  import pep_ks_common_param_pkg::*;
   import pep_mmacc_common_param_pkg::*;
   import regf_common_param_pkg::*;
 #(
@@ -71,9 +70,9 @@ module pep_mmacc_splitc_main
   input  logic [PID_W-1:0]                                           ks_boram_pid,
   input  logic                                                       ks_boram_parity,
 
-  input  logic                                                       ks_boram_corr_wr_en,
-  input  logic [KS_MAX_ERROR_W-1:0]                                  ks_boram_corr_data,
-  input  logic [PID_W-1:0]                                           ks_boram_corr_pid,
+  input  logic                                                       seq_boram_corr_wr_en,
+  input  logic [KS_MAX_ERROR_W-1:0]                                  seq_boram_corr_data,
+  input  logic [PID_W-1:0]                                           seq_boram_corr_pid,
 
   // BSK
   input  logic                                                       inc_bsk_wr_ptr,
@@ -712,9 +711,9 @@ module pep_mmacc_splitc_main
     .ks_boram_wr_pid        (ks_boram_pid),
     .ks_boram_wr_parity     (ks_boram_parity),
 
-    .ks_boram_corr_wr_en    (ks_boram_corr_wr_en),
-    .ks_boram_corr_wr_data  (ks_boram_corr_data),
-    .ks_boram_corr_wr_pid   (ks_boram_corr_pid),
+    .seq_boram_corr_wr_en   (seq_boram_corr_wr_en),
+    .seq_boram_corr_wr_data (seq_boram_corr_data),
+    .seq_boram_corr_wr_pid  (seq_boram_corr_pid),
 
     .boram_rd_pid           (bfifo_out_pid),
     .boram_rd_parity        (bfifo_out_parity),

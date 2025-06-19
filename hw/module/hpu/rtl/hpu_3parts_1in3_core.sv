@@ -281,11 +281,6 @@ module hpu_3parts_1in3_core
   logic [PID_W-1:0]                       ks_boram_pid;
   logic                                   ks_boram_parity;
 
-  // KS <-> Body RAM (mean correction)
-  logic                                   ks_boram_corr_wr_en;
-  logic [KS_MAX_ERROR_W-1:0]              ks_boram_corr_data;
-  logic [PID_W-1:0]                       ks_boram_corr_pid;
-
   logic                                   inc_ksk_wr_ptr;
   logic                                   inc_ksk_rd_ptr;
 
@@ -636,10 +631,6 @@ module hpu_3parts_1in3_core
     .ks_boram_pid               (ks_boram_pid),
     .ks_boram_parity            (ks_boram_parity),
 
-    .ks_boram_corr_wr_en        (ks_boram_corr_wr_en),
-    .ks_boram_corr_data         (ks_boram_corr_data),
-    .ks_boram_corr_pid          (ks_boram_corr_pid),
-
     .subs_main_ntt_acc_modsw_avail   (subs_main_acc_data_avail),
     .subs_main_ntt_acc_modsw_data    (subs_main_acc_data.data),
     .subs_main_ntt_acc_modsw_sob     (subs_main_acc_data.sob),
@@ -813,10 +804,6 @@ module hpu_3parts_1in3_core
     .ks_boram_data            (ks_boram_data),
     .ks_boram_pid             (ks_boram_pid),
     .ks_boram_parity          (ks_boram_parity),
-
-    .ks_boram_corr_wr_en      (ks_boram_corr_wr_en),
-    .ks_boram_corr_data       (ks_boram_corr_data),
-    .ks_boram_corr_pid        (ks_boram_corr_pid),
 
     .inc_ksk_wr_ptr           (inc_ksk_wr_ptr),
     .inc_ksk_rd_ptr           (inc_ksk_rd_ptr),

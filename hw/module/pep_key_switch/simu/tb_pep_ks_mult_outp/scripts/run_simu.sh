@@ -71,8 +71,10 @@ R=2
 
 for i in `seq 1 5`; do
     BATCH_PBS_NB=$((1+$RANDOM % 10))
-    LWE_K=$((12+$RANDOM % 10))
+    USE_MEAN_COMPENSATION=$((0+$RANDOM % 2))
+    LWE_K=$((12+$RANDOM % 15))
     MOD_Q_W=$((20+$RANDOM % 32))
+    MOD_KSK_W=$((15+$RANDOM % 32))
     S=$((6+$RANDOM % 3))
     GLWE_K=$((1+$RANDOM % 3))
     KS_L=$((2+$RANDOM % 6))
@@ -91,7 +93,7 @@ for i in `seq 1 5`; do
       -X $LBX \
       -Y $LBY \
       -Z $LBZ \
-      -V $KS_B_W \
+      -B $KS_B_W \
       -W $MOD_Q_W \
       -dM $BATCH_PBS_NB
     while [ $? -ne 0 ] ; do
@@ -104,7 +106,7 @@ for i in `seq 1 5`; do
         -X $LBX \
         -Y $LBY \
         -Z $LBZ \
-        -V $KS_B_W \
+        -B $KS_B_W \
         -W $MOD_Q_W \
       -dM $BATCH_PBS_NB
     done
@@ -117,12 +119,15 @@ for i in `seq 1 5`; do
           -L $KS_L \
           -B $KS_B_W \
           -W $MOD_Q_W \
+          -V $MOD_KSK_W \
           -q "2**$MOD_Q_W" \
+          -r "2**$MOD_KSK_W" \
           -X $LBX \
           -Y $LBY \
           -Z $LBZ \
           -c $BATCH_PBS_NB \
-          -- $args "
+          -- -P USE_MEAN_COMPENSATION int $USE_MEAN_COMPENSATION \
+          $args "
 
     echo "==========================================================="
     echo "INFO> Running : $cmd"

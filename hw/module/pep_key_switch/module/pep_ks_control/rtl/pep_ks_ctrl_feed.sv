@@ -50,7 +50,6 @@ module pep_ks_ctrl_feed
   output logic                               ctrl_mult_last_eoy,
   output logic                               ctrl_mult_last_last_iter,
   output logic [TOTAL_BATCH_NB_W-1:0]        ctrl_mult_last_batch_id,
-  output logic [PID_W-1:0]                   ctrl_mult_last_pid,
 
   // To ksk manager
   output logic [KS_BATCH_CMD_W-1:0]          batch_cmd,
@@ -78,7 +77,6 @@ module pep_ks_ctrl_feed
     logic                        eoy;
     logic                        last_iter;
     logic [TOTAL_BATCH_NB_W-1:0] batch_id;
-    logic [PID_W-1:0]            pid;
   } side_t;
 
   localparam int SIDE_W = $bits(side_t);
@@ -158,8 +156,6 @@ module pep_ks_ctrl_feed
   logic                       f0_use_wrap_pbs;
   logic                       f0_use_wrap_pbsD;
   logic [PID_W-1:0]           f0_wrap_pbs_cnt;
-  logic [PID_W-1:0]           f0_pid;
-  logic [PID_W-1:0]           f0_pidD;
 
   logic                       f0_do_wrap_pbs;
   logic                       f0_do_read;
@@ -181,7 +177,6 @@ module pep_ks_ctrl_feed
   assign f0_last_lvl     = f0_lvl == KS_LG_NB-1;
   assign f0_lvlD         = f0_do_read ? f0_last_lvl ? '0 : f0_lvl + 1 : f0_lvl;
   assign f0_pbs_cntD     = f0_do_read && f0_last_lvl ? f0_last_pbs_cnt ? '0 : f0_pbs_cnt + 1 : f0_pbs_cnt;
-  assign f0_pidD         = f0_pbs_cntD + ffifo_feed_pcmd_s.first_pid;
   assign f0_blineD       = f0_do_read && f0_last_lvl && f0_last_pbs_cnt ? f0_last_bline ? '0 : f0_bline + 1 : f0_bline;
   assign f0_use_wrap_pbsD = f0_do_read && f0_last_lvl ? f0_last_pbs_cnt ? 1'b0 : f0_do_wrap_pbs ? 1'b1 : f0_use_wrap_pbs : f0_use_wrap_pbs;
 
@@ -194,7 +189,6 @@ module pep_ks_ctrl_feed
   always_ff @(posedge clk)
     if (!s_rst_n || reset_loop) begin
       f0_pbs_cnt       <= '0;
-      f0_pid           <= '0;
       f0_bline         <= '0;
       f0_add_pbs_ofs   <= '0;
       f0_lvl           <= '0;
@@ -203,7 +197,6 @@ module pep_ks_ctrl_feed
     end
     else begin
       f0_pbs_cnt       <= f0_pbs_cntD;
-      f0_pid           <= f0_pidD;
       f0_bline         <= f0_blineD;
       f0_add_pbs_ofs   <= f0_add_pbs_ofsD;
       f0_lvl           <= f0_lvlD;
@@ -286,7 +279,6 @@ module pep_ks_ctrl_feed
   assign f0_side.eoy       = f0_last_pbs_cnt;
   assign f0_side.last_iter = f0_last_bline;
   assign f0_side.batch_id  = ffifo_feed_pcmd_s.batch_id;
-  assign f0_side.pid       = f0_pid;
 
   assign f1_avail_srD[0] = f0_do_read_exec;
   assign f1_side_srD[0]  = f0_side;
@@ -325,7 +317,6 @@ module pep_ks_ctrl_feed
   assign ctrl_mult_last_eoy       = ctrl_mult_side[LBY-1].eoy;
   assign ctrl_mult_last_last_iter = ctrl_mult_side[LBY-1].last_iter;
   assign ctrl_mult_last_batch_id  = ctrl_mult_side[LBY-1].batch_id;
-  assign ctrl_mult_last_pid       = ctrl_mult_side[LBY-1].pid;
   assign ctrl_mult_last_eol       = ctrl_mult_eol[LBY-1];
 
   generate

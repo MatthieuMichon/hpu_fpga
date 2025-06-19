@@ -29,6 +29,8 @@ echo "-R                       : R: Radix (default 2)"
 echo "-S                       : S: Number of stages (default 8)"
 echo "-q                       : MOD_Q: modulo (default : 2**32)"
 echo "-W                       : MOD_Q_W: modulo width (default 32)"
+echo "-r                       : MOD_KSK: modulo (default : 2**16)"
+echo "-V                       : MOD_KSK_W: modulo width (default 16)"
 echo "-c                       : BATCH_PBS_NB (default : 12)"
 echo "-H                       : TOTAL_PBS_NB (default : 16)"
 echo "-K                       : LWE_K (default : 12)"
@@ -58,6 +60,8 @@ R=2
 S=8
 MOD_Q="2**32"
 MOD_Q_W=32
+MOD_KSK="2**16"
+MOD_KSK_W=16
 BATCH_PBS_NB=12
 TOTAL_PBS_NB=16
 LWE_K=12
@@ -69,7 +73,7 @@ KS_B_W=31
 KS_IF_SUBW_NB=1
 KS_IF_COEF_NB=8
 # Initialize your own variables here:
-while getopts "hg:R:S:q:W:c:K:X:Y:Z:B:L:H:x:y:" opt; do
+while getopts "hg:R:S:q:W:c:K:X:Y:Z:B:L:H:x:y:V:r:" opt; do
   case "$opt" in
     h)
       usage
@@ -89,6 +93,12 @@ while getopts "hg:R:S:q:W:c:K:X:Y:Z:B:L:H:x:y:" opt; do
       ;;
     W)
       MOD_Q_W=$OPTARG
+      ;;
+    r)
+      MOD_KSK=$OPTARG
+      ;;
+    V)
+      MOD_KSK_W=$OPTARG
       ;;
     c)
       BATCH_PBS_NB=$OPTARG
@@ -153,9 +163,9 @@ mkdir -p $RTL_DIR
 # Create package
 if [ $GEN_STIMULI -eq 1 ] ; then
   pkg_cmd="python3 ${PROJECT_DIR}/hw/module/param/scripts/gen_param_tfhe_definition_pkg.py -f \
-                  -N $N -g $GLWE_K -K $LWE_K -q $MOD_Q -W $MOD_Q_W -L $KS_L -B $KS_B_W \
+                  -N $N -g $GLWE_K -K $LWE_K -q $MOD_Q -W $MOD_Q_W -L $KS_L -B $KS_B_W -r $MOD_KSK -V $MOD_KSK_W\
                   -o ${RTL_DIR}/param_tfhe_definition_pkg.sv"
-  echo "INFO> N=${N}, GLWE_K=${GLWE_K} MOD_Q=${MOD_Q} MOD_Q_W=${MOD_Q_W} LWE_K=${LWE_K} KS_L=${KS_L} KS_B_W=${KS_B_W}"
+  echo "INFO> N=${N}, GLWE_K=${GLWE_K} MOD_Q=${MOD_Q} MOD_Q_W=${MOD_Q_W} LWE_K=${LWE_K} KS_L=${KS_L} KS_B_W=${KS_B_W} MOD_KSK=${MOD_KSK} MOD_KSK_W=${MOD_KSK_W}"
   echo "INFO> Creating param_tfhe_definition_pkg.sv"
   echo "INFO> Running : $pkg_cmd"
   $pkg_cmd || exit 1

@@ -59,19 +59,23 @@ TMP_FILE="${PROJECT_DIR}/hw/output/${RANDOM}${RANDOM}._tmp"
 echo -n "" > $SEED_FILE
 echo -n "" > $TMP_FILE
 
-cmd="${SCRIPT_DIR}/run.sh -- $args"
+for i in `seq 1 5`; do
+  LWE_K=$((2+$RANDOM % 50))
 
-echo "==========================================================="
-echo "INFO> Running : $cmd"
-echo "==========================================================="
-$cmd | tee >(grep "Seed" | head -1 >> $SEED_FILE) |  grep -c "> SUCCEED !" > $TMP_FILE
-exit_status=$?
-# In case of post processing, presence of several SUCCEED is necessary to be a real success
-succeed_cnt=$(cat $TMP_FILE)
-rm -f $TMP_FILE
-if [ $exit_status -gt 0 ] || [ $succeed_cnt -ne 1 ] ; then
-  echo -e "${RED}FAILURE>${NC} $cmd" 1>&2
-  exit $exit_status
-else
-  echo -e "${GREEN}SUCCEED>${NC} $cmd" 1>&2
-fi
+  cmd="${SCRIPT_DIR}/run.sh -K $LWE_K -- $args"
+
+  echo "==========================================================="
+  echo "INFO> Running : $cmd"
+  echo "==========================================================="
+  $cmd | tee >(grep "Seed" | head -1 >> $SEED_FILE) |  grep -c "> SUCCEED !" > $TMP_FILE
+  exit_status=$?
+  # In case of post processing, presence of several SUCCEED is necessary to be a real success
+  succeed_cnt=$(cat $TMP_FILE)
+  rm -f $TMP_FILE
+  if [ $exit_status -gt 0 ] || [ $succeed_cnt -ne 1 ] ; then
+    echo -e "${RED}FAILURE>${NC} $cmd" 1>&2
+    exit $exit_status
+  else
+    echo -e "${GREEN}SUCCEED>${NC} $cmd" 1>&2
+  fi
+done

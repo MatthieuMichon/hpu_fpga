@@ -11,7 +11,6 @@
 module tb_pep_mmacc_body_ram;
   import param_tfhe_pkg::*;
   import pep_common_param_pkg::*;
-  import pep_ks_common_param_pkg::*;
 
 `timescale 1ns/10ps
 
@@ -21,7 +20,7 @@ module tb_pep_mmacc_body_ram;
   localparam int CLK_HALF_PERIOD = 1;
   localparam int ARST_ACTIVATION = 17;
 
-  parameter int SAMPLE_NB = 1000;
+  parameter int SAMPLE_NB = 10000;
 
   localparam int DATA_RAND_RANGE = 1023;
   localparam int CORR_DATA_RAND_RANGE = ~(KS_MAX_ERROR_W'(0));
@@ -29,14 +28,13 @@ module tb_pep_mmacc_body_ram;
 // ============================================================================================== --
 // Types
 // ============================================================================================== --
-  // Note: ks_corr_t absolutely needs to be signed, otherwise all the expected computations in the
+  // Note: seq_corr_t absolutely needs to be signed, otherwise all the expected computations in the
   // checker become a mess. I prefer that the expected model is as pure and abstracted as possible
   // to minimize the number of possible errors in the testbench.
 
   typedef logic        [LWE_COEF_W-1:0]     modsw_coeff_t;
   typedef logic        [MOD_KSK_W-1:0]      ks_coeff_t;
-  typedef logic signed [KS_MAX_ERROR_W-1:0] ks_corr_t;
-  typedef logic        [KS_BLOCK_COL_W-1:0] ks_block_cnt_t;
+  typedef logic signed [KS_MAX_ERROR_W-1:0] seq_corr_t;
   typedef logic        [PID_W-1:0]          pid_t;
 
   typedef enum logic [1:0] {
@@ -86,9 +84,9 @@ module tb_pep_mmacc_body_ram;
   pid_t         ks_boram_wr_pid;
   logic         ks_boram_wr_parity;
 
-  logic         ks_boram_corr_wr_en;
-  ks_corr_t     ks_boram_corr_wr_data;
-  pid_t         ks_boram_corr_wr_pid;
+  logic         seq_boram_corr_wr_en;
+  seq_corr_t    seq_boram_corr_wr_data;
+  pid_t         seq_boram_corr_wr_pid;
 
   pid_t         boram_rd_pid;
   logic         boram_rd_vld;
@@ -128,9 +126,9 @@ module tb_pep_mmacc_body_ram;
     .ks_boram_wr_pid       (ks_boram_wr_pid),
     .ks_boram_wr_parity    (ks_boram_wr_parity),
 
-    .ks_boram_corr_wr_en   (ks_boram_corr_wr_en),
-    .ks_boram_corr_wr_data (ks_boram_corr_wr_data),
-    .ks_boram_corr_wr_pid  (ks_boram_corr_wr_pid),
+    .seq_boram_corr_wr_en  (seq_boram_corr_wr_en),
+    .seq_boram_corr_wr_data(seq_boram_corr_wr_data),
+    .seq_boram_corr_wr_pid (seq_boram_corr_wr_pid),
 
     .boram_rd_pid          (boram_rd_pid),
     .boram_rd_vld          (boram_rd_vld),
@@ -149,7 +147,7 @@ module tb_pep_mmacc_body_ram;
 // Keep track that the LWE has been read, to write again.
   ks_coeff_t    ks_lwe_a      [TOTAL_PBS_NB-1:0];
   ks_coeff_t    prev_ks_lwe_a [TOTAL_PBS_NB-1:0];
-  ks_corr_t     prev_corr_acc [TOTAL_PBS_NB-1:0];
+  seq_corr_t    prev_corr_acc [TOTAL_PBS_NB-1:0];
 
   state_t wr_enable  [TOTAL_PBS_NB-1:0];
   state_t wr_enableD [TOTAL_PBS_NB-1:0];
@@ -212,7 +210,9 @@ module tb_pep_mmacc_body_ram;
   assign ks_boram_wr_pid    = rand_pid;
   assign ks_boram_wr_parity = wr_parity;
   //assign ks_boram_wr_data = (prev_ks_lwe_a[ks_boram_wr_pid] === wr_lwe) ? wr_lwe + 1 : wr_lwe; // === take X into account
-  assign ks_boram_wr_data = (wr_enable[ks_boram_wr_pid] == WRITE_FIRST) ? (prev_ks_lwe_a[ks_boram_wr_pid] === wr_lwe) ? wr_lwe + ks_coeff_t'(1) : wr_lwe: ks_lwe_a[ks_boram_wr_pid];
+  assign ks_boram_wr_data = (wr_enable[ks_boram_wr_pid] == WRITE_FIRST) ?
+                            (prev_ks_lwe_a[ks_boram_wr_pid] === wr_lwe) ? wr_lwe + ks_coeff_t'(1) : wr_lwe
+                            : ks_lwe_a[ks_boram_wr_pid];
   assign ks_boram_wr_en   = wr_vld & ^wr_enable[ks_boram_wr_pid];
   assign wr_rdy           = ^wr_enable[ks_boram_wr_pid];
   assign wr_done          = ks_boram_wr_en;
@@ -242,62 +242,62 @@ module tb_pep_mmacc_body_ram;
 // Scenario 2
 // Write the correction RAM randomly
 // ============================================================================================== --
-
   //== Correction RAM Write
-  logic     ks_corr_wr_vld;
-  logic     ks_corr_wr_rdy;
-  ks_corr_t ks_corr_wr_lwe;
+  logic     seq_corr_wr_vld;
+  logic     seq_corr_wr_rdy;
+  seq_corr_t seq_corr_wr_lwe;
 
   stream_source
   #(
     .FILENAME   ("random"),
     .DATA_TYPE  ("ascii_hex"),
-    .DATA_W     ($bits(ks_corr_t)),
+    .DATA_W     ($bits(seq_corr_t)),
     .RAND_RANGE (CORR_DATA_RAND_RANGE),
     .KEEP_VLD   (0),
     .MASK_DATA  ("x")
   )
-  source_ks_corr_wr
+  source_seq_corr_wr
   (
     .clk        (clk),
     .s_rst_n    (s_rst_n),
 
-    .data       (ks_corr_wr_lwe),
-    .vld        (ks_corr_wr_vld),
-    .rdy        (ks_corr_wr_rdy),
+    .data       (seq_corr_wr_lwe),
+    .vld        (seq_corr_wr_vld),
+    .rdy        (seq_corr_wr_rdy),
 
     .throughput ('0)
   );
 
   initial begin
-    void'(source_ks_corr_wr.open());
+    void'(source_seq_corr_wr.open());
     wait(s_rst_n);
-    @(posedge clk) source_ks_corr_wr.start(0);
+    @(posedge clk) source_seq_corr_wr.start(0);
   end
 
-  ks_block_cnt_t ks_corr_wr_cnt [TOTAL_PBS_NB];
-  ks_corr_t         ks_corr_acc [TOTAL_PBS_NB];
+  integer     seq_corr_wr_cnt [TOTAL_PBS_NB];
+  seq_corr_t  seq_corr_acc    [TOTAL_PBS_NB];
 
-  generate for (genvar i = 0; i < TOTAL_PBS_NB; i++) begin: gen_ks_corr_wr_cnt
+  generate for (genvar i = 0; i < TOTAL_PBS_NB; i++) begin: gen_seq_corr_wr_cnt
     always_ff @(posedge clk) begin
       if(!s_rst_n || (rd_done && rd_done_pid == pid_t'(i))) begin
-        ks_corr_wr_cnt[i] <= '0;
-        ks_corr_acc[i]    <= '0;
-      end else if(ks_boram_corr_wr_en && ks_boram_corr_wr_pid == pid_t'(i)) begin
-        ks_corr_wr_cnt[i] <= ks_corr_wr_cnt[i] + ks_block_cnt_t'(1);
-        ks_corr_acc[i]    <= ks_corr_acc[i] + ks_boram_corr_wr_data;
+        seq_corr_wr_cnt[i] <= '0;
+        seq_corr_acc[i]    <= '0;
+      end else if(seq_boram_corr_wr_en && seq_boram_corr_wr_pid == pid_t'(i)) begin
+        seq_corr_wr_cnt[i] <= seq_corr_wr_cnt[i] + 1;
+        seq_corr_acc[i]    <= seq_corr_acc[i] + seq_boram_corr_wr_data;
       end
     end
   end endgenerate
 
-  pid_t rand_ks_corr_pid;
+  pid_t rand_seq_corr_pid;
   always_ff @(posedge clk)
-    rand_ks_corr_pid <= pid_t'($urandom_range(0,TOTAL_PBS_NB-1));
+    rand_seq_corr_pid <= pid_t'($urandom_range(0,TOTAL_PBS_NB-1));
 
-  assign ks_boram_corr_wr_pid  = rand_ks_corr_pid;
-  assign ks_boram_corr_wr_data = ks_corr_wr_lwe;
-  assign ks_corr_wr_rdy        = (ks_corr_wr_cnt[ks_boram_corr_wr_pid] < ks_block_cnt_t'(KS_BLOCK_COL_NB));
-  assign ks_boram_corr_wr_en   = ks_corr_wr_vld & ks_corr_wr_rdy;
+  assign seq_boram_corr_wr_pid  = rand_seq_corr_pid;
+  assign seq_boram_corr_wr_data = (seq_corr_wr_cnt[rand_seq_corr_pid] == LWE_K-1) ?
+                                  seq_corr_wr_lwe : seq_corr_wr_lwe;
+  assign seq_corr_wr_rdy        = (seq_corr_wr_cnt[seq_boram_corr_wr_pid] < LWE_K);
+  assign seq_boram_corr_wr_en   = seq_corr_wr_vld & seq_corr_wr_rdy;
 
   // Keep track of data value
   always_ff @(posedge clk)
@@ -306,7 +306,7 @@ module tb_pep_mmacc_body_ram;
 
   always_ff @(posedge clk)
     if (rd_done) begin
-      prev_corr_acc[rd_done_pid] <= ks_corr_acc[rd_done_pid];
+      prev_corr_acc[rd_done_pid] <= seq_corr_acc[rd_done_pid];
       prev_ks_lwe_a[rd_done_pid] <= ks_lwe_a[rd_done_pid];
     end
 
@@ -433,7 +433,7 @@ module tb_pep_mmacc_body_ram;
 
         ref_pid  = rd_add_q.pop_front();
         prev_lwe = mod_switch(real'(prev_ks_lwe_a[ref_pid]) - real'(prev_corr_acc[ref_pid]) * KS_KEY_MEAN_R);
-        ref_lwe  = mod_switch(real'(ks_lwe_a[ref_pid]) - real'(ks_corr_acc[ref_pid]) * KS_KEY_MEAN_R);
+        ref_lwe  = mod_switch(real'(ks_lwe_a[ref_pid]) - real'(seq_corr_acc[ref_pid]) * KS_KEY_MEAN_R);
 
         // Not using assert because it causes lint warnings about side effects
         if(ref_lwe != boram_sxt_data) begin

@@ -61,11 +61,6 @@ module pep_key_switch
   output logic [PID_W-1:0]                                          boram_pid,
   output logic                                                      boram_parity,
 
-  // Wr access to body RAM (mean correction)
-  output logic                                                      boram_corr_wr_en,
-  output logic [KS_MAX_ERROR_W-1:0]                                 boram_corr_data,
-  output logic [PID_W-1:0]                                          boram_corr_pid,
-
   input  logic                                                      reset_cache,
   input  logic                                                      mod_switch_mean_comp,
 
@@ -104,13 +99,11 @@ module pep_key_switch
   logic                                        ctrl_mult_last_eoy;
   logic                                        ctrl_mult_last_last_iter; // last iteration within the column
   logic [TOTAL_BATCH_NB_W-1:0]                 ctrl_mult_last_batch_id;
-  logic [TOTAL_BATCH_NB_W-1:0][PID_W-1:0]      ctrl_mult_last_pid;
 
   logic [LBX-1:0][MOD_KSK_W-1:0]               mult_outp_data;
   logic [LBX-1:0]                              mult_outp_avail;
   logic [LBX-1:0]                              mult_outp_last_pbs;
   logic [LBX-1:0][TOTAL_BATCH_NB_W-1:0]        mult_outp_batch_id;
-  logic [LBX-1:0][PID_W-1:0]                   mult_outp_pid;
 
   // Internal body fifo
   logic [TOTAL_BATCH_NB-1:0]                   blram_bfifo_wr_en;
@@ -127,6 +120,7 @@ module pep_key_switch
   logic [TOTAL_BATCH_NB-1:0]                   outp_ks_loop_done_mh;
 
   logic [LWE_COEF_W-1:0]                       br_proc_lwe;
+  logic [KS_MAX_ERROR_W-1:0]                   br_proc_corr;
   logic                                        br_proc_vld;
   logic                                        br_proc_rdy;
 
@@ -201,8 +195,7 @@ module pep_key_switch
     .ctrl_mult_last_eol        (ctrl_mult_last_eol),
     .ctrl_mult_last_eoy        (ctrl_mult_last_eoy),
     .ctrl_mult_last_last_iter  (ctrl_mult_last_last_iter),
-    .ctrl_mult_last_batch_id   (ctrl_mult_last_batch_id),
-    .ctrl_mult_last_pid        (ctrl_mult_last_pid)
+    .ctrl_mult_last_batch_id   (ctrl_mult_last_batch_id)
   );
 
 //------------------------------------------------------
@@ -254,7 +247,6 @@ module pep_key_switch
     .ctrl_mult_last_eoy         (ctrl_mult_last_eoy),
     .ctrl_mult_last_last_iter   (ctrl_mult_last_last_iter),
     .ctrl_mult_last_batch_id    (ctrl_mult_last_batch_id),
-    .ctrl_mult_last_pid         (ctrl_mult_last_pid),
 
     .ksk                        (ksk),
     .ksk_vld                    (ksk_vld),
@@ -264,7 +256,6 @@ module pep_key_switch
     .mult_outp_avail            (mult_outp_avail),
     .mult_outp_last_pbs         (mult_outp_last_pbs),
     .mult_outp_batch_id         (mult_outp_batch_id),
-    .mult_outp_pid              (mult_outp_pid),
 
     .error                      (error_ksk_udf)
   );
@@ -286,7 +277,6 @@ module pep_key_switch
     .mult_outp_avail       (mult_outp_avail),
     .mult_outp_last_pbs    (mult_outp_last_pbs),
     .mult_outp_batch_id    (mult_outp_batch_id),
-    .mult_outp_pid         (mult_outp_pid),
 
     .bfifo_outp_data       (bfifo_outp_data),
     .bfifo_outp_pid        (bfifo_outp_pid),
@@ -294,6 +284,7 @@ module pep_key_switch
     .bfifo_outp_rdy        (bfifo_outp_rdy),
 
     .br_proc_lwe           (br_proc_lwe),
+    .br_proc_corr          (br_proc_corr),
     .br_proc_vld           (br_proc_vld),
     .br_proc_rdy           (br_proc_rdy),
 
@@ -303,11 +294,7 @@ module pep_key_switch
     .br_bfifo_wr_en        (boram_wr_en),
     .br_bfifo_data         (boram_data),
     .br_bfifo_pid          (boram_pid),
-    .br_bfifo_parity       (boram_parity),
-
-    .br_bfifo_corr_wr_en   (boram_corr_wr_en),
-    .br_bfifo_corr_data    (boram_corr_data),
-    .br_bfifo_corr_pid     (boram_corr_pid)
+    .br_bfifo_parity       (boram_parity)
   );
 
 //------------------------------------------------------
@@ -349,6 +336,7 @@ module pep_key_switch
     .ctrl_res_cmd_rdy  (ctrl_res_cmd_rdy),
 
     .br_proc_lwe       (br_proc_lwe),
+    .br_proc_corr      (br_proc_corr),
     .br_proc_vld       (br_proc_vld),
     .br_proc_rdy       (br_proc_rdy),
 

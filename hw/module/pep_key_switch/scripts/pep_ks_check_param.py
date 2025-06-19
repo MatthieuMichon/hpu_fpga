@@ -20,7 +20,7 @@ if __name__ == '__main__':
     S=11
     GLWE_K=1
     AXI_W=512
-    KSK_W=21
+    ks_b_w=21
     Q_W=64
 #=====================================================
 # Parse input arguments
@@ -44,8 +44,8 @@ if __name__ == '__main__':
                                required=True)
     parser.add_argument('-A', dest='axi_w',       type=int, help="AXI4 bus width",
                                default=AXI_W)
-    parser.add_argument('-V', dest='ksk_w',       type=int, help="KSK width",
-                               default=KSK_W)
+    parser.add_argument('-B', dest='ks_b_w',       type=int, help="KSK width",
+                               default=ks_b_w)
     parser.add_argument('-W', dest='q_w',         type=int, help="Ciphertext coef width",
                                default=Q_W)
     parser.add_argument('-v',  dest='verbose',              help="Run in verbose mode.",
@@ -62,7 +62,7 @@ if __name__ == '__main__':
     LBX = args.lbx
     LBY = args.lby
     LBZ = args.lbz
-    KSK_W = args.ksk_w
+    KS_B_W = args.ks_b_w
     AXI_W = args.axi_w
     Q_W = args.q_w
 
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     KS_BLOCK_LINE_NB = (BLWE_K + LBY-1) // LBY;
     COLUMN_PROC_CYCLE_MIN = KS_BLOCK_LINE_NB * KS_LG_NB;
     READ_PIPE_CYCLE_MAX   = LBX * BATCH_PBS_NB;
-    if ((LBZ * KSK_W) > 32):
+    if ((LBZ * KS_B_W) > 32):
         KSK_ACS_W = 64
     else:
         KSK_ACS_W = 32

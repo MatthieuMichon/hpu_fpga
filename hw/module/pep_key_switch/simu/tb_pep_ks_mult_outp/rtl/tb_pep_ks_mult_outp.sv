@@ -17,8 +17,7 @@ module tb_pep_ks_mult_outp;
 // ============================================================================================== --
 // localparam / parameter
 // ============================================================================================== --
-  parameter  int OP_W             = MOD_Q_W;
-  //localparam int OP_ACS_W         = OP_W > 32 ? 64 : 32;
+  parameter  int OP_W             = MOD_KSK_W;
   parameter  int BLWE_RAM_DEPTH   = (BLWE_K+LBY-1)/LBY * BATCH_PBS_NB * TOTAL_BATCH_NB;
   localparam int BLWE_RAM_ADD_W   = $clog2(BLWE_RAM_DEPTH);
   parameter  int DATA_LATENCY     = 6; // BLRAM access read latency
@@ -30,6 +29,8 @@ module tb_pep_ks_mult_outp;
   parameter  int PROC_BATCH_NB     = 100;
 
   parameter  int BATCH_IN_PARALLEL = TOTAL_BATCH_NB;
+
+  parameter  bit USE_MEAN_COMPENSATION = 1'b0;
 
   localparam int OUT_FIFO_DEPTH = 4;
   localparam int DROP_COL_NB    = LBX == 1 ? 0 : (LBX - (LWE_K_P1 % LBX)) % LBX;
@@ -122,7 +123,6 @@ module tb_pep_ks_mult_outp;
   logic                                       ctrl_mult_last_eoy;
   logic                                       ctrl_mult_last_last_iter; // last iteration within the column
   logic [TOTAL_BATCH_NB_W-1:0]                ctrl_mult_last_batch_id;
-  logic [PID_W-1:0]                           ctrl_mult_last_pid;
 
   logic [LBX-1:0][LBY-1:0][LBZ-1:0][OP_W-1:0] ksk;
   logic [LBX-1:0][LBY-1:0]                    ksk_vld;
@@ -132,7 +132,6 @@ module tb_pep_ks_mult_outp;
   logic [LBX-1:0]                             mult_outp_avail;
   logic [LBX-1:0]                             mult_outp_last_pbs;
   logic [LBX-1:0][TOTAL_BATCH_NB_W-1:0]       mult_outp_batch_id;
-  logic [LBX-1:0][PID_W-1:0]                  mult_outp_pid;
 
   // body
   logic [TOTAL_BATCH_NB-1:0][OP_W-1:0]        bfifo_outp_data;
@@ -142,6 +141,7 @@ module tb_pep_ks_mult_outp;
 
   // LWE coeff
   logic [TOTAL_BATCH_NB-1:0][LWE_COEF_W-1:0]  br_proc_lwe;
+  logic [TOTAL_BATCH_NB-1:0][KS_MAX_ERROR_W-1:0] br_proc_corr; // mean compensation correction
   logic [TOTAL_BATCH_NB-1:0]                  br_proc_vld;
   logic [TOTAL_BATCH_NB-1:0]                  br_proc_rdy;
 
@@ -177,7 +177,6 @@ module tb_pep_ks_mult_outp;
     .ctrl_mult_last_eoy         (ctrl_mult_last_eoy),
     .ctrl_mult_last_last_iter   (ctrl_mult_last_last_iter),
     .ctrl_mult_last_batch_id    (ctrl_mult_last_batch_id),
-    .ctrl_mult_last_pid         (ctrl_mult_last_pid),
 
     .ksk                        (ksk),
     .ksk_vld                    (ksk_vld),
@@ -187,7 +186,6 @@ module tb_pep_ks_mult_outp;
     .mult_outp_avail            (mult_outp_avail),
     .mult_outp_last_pbs         (mult_outp_last_pbs),
     .mult_outp_batch_id         (mult_outp_batch_id),
-    .mult_outp_pid              (mult_outp_pid),
 
     .error                      (error_mult)
   );
@@ -203,7 +201,6 @@ module tb_pep_ks_mult_outp;
     .mult_outp_avail       (mult_outp_avail),
     .mult_outp_last_pbs    (mult_outp_last_pbs),
     .mult_outp_batch_id    (mult_outp_batch_id),
-    .mult_outp_pid         (mult_outp_pid),
 
     .bfifo_outp_data       (bfifo_outp_data),
     .bfifo_outp_pid        (bfifo_outp_pid),
@@ -211,6 +208,7 @@ module tb_pep_ks_mult_outp;
     .bfifo_outp_rdy        (bfifo_outp_rdy),
 
     .br_proc_lwe           (br_proc_lwe),
+    .br_proc_corr          (br_proc_corr),
     .br_proc_vld           (br_proc_vld),
     .br_proc_rdy           (br_proc_rdy),
 
@@ -219,11 +217,7 @@ module tb_pep_ks_mult_outp;
     .br_bfifo_pid          (/*UNUSED*/), // Not tested here
     .br_bfifo_parity       (/*UNUSED*/), // Not tested here
 
-    .br_bfifo_corr_wr_en   (/*UNUSED*/), // Not tested here
-    .br_bfifo_corr_data    (/*UNUSED*/), // Not tested here
-    .br_bfifo_corr_pid     (/*UNUSED*/), // Not tested here
-
-    .mod_switch_mean_comp  (1'b0),
+    .mod_switch_mean_comp  (USE_MEAN_COMPENSATION),
 
     .reset_cache           (reset_cache),
     .outp_ks_loop_done_mh  (outp_ks_loop_done_mh),
@@ -421,7 +415,6 @@ module tb_pep_ks_mult_outp;
   assign ctrl_mult_last_eoy       = sr_ctrl_mult_eoy[LBY-1];
   assign ctrl_mult_last_last_iter = sr_ctrl_mult_last_iter[LBY-1];
   assign ctrl_mult_last_batch_id  = sr_ctrl_mult_batch_id[LBY-1];
-  assign ctrl_mult_last_pid       = sr_ctrl_mult_pid[LBY-1];
 
 //---------------------------------------------------
 // Ksk
@@ -734,6 +727,7 @@ module tb_pep_ks_mult_outp;
   logic [OP_W-1:0] out_body_q     [TOTAL_BATCH_NB-1:0][$];
   logic [OP_W-1:0] br_bfifo_data_q[TOTAL_BATCH_NB-1:0][$];
   logic [LWE_COEF_W-1:0] br_proc_lwe_q  [TOTAL_BATCH_NB-1:0][$];
+  logic [KS_MAX_ERROR_W-1:0] br_proc_corr_q  [TOTAL_BATCH_NB-1:0][$];
 
   always_ff @(posedge clk)
     if (in_run_column && in_bline_cnt==0 && in_bcol_cnt==0 && in_lvl_cnt==0) begin
@@ -748,8 +742,10 @@ module tb_pep_ks_mult_outp;
         bfifo_outp_q[b].push_back(bfifo_outp_data[b]);
       if (br_bfifo_wr_en[b])
         br_bfifo_data_q[b].push_back(br_bfifo_data[b]);
-      if (br_proc_vld[b] && br_proc_rdy[b])
+      if (br_proc_vld[b] && br_proc_rdy[b]) begin
         br_proc_lwe_q[b].push_back(br_proc_lwe[b]);
+        br_proc_corr_q[b].push_back(br_proc_corr[b]);
+      end
     end
 
 
@@ -773,19 +769,34 @@ module tb_pep_ks_mult_outp;
         if (br_proc_lwe_q[b].size() >= pbs_nb &&
             (((out_x_cnt[b] < LWE_K-1) && mult_res_q[x_col][b].size() >= pbs_nb)
             || ((out_x_cnt[b] == LWE_K-1) && mult_res_q[x_col][b].size() > pbs_nb*(1 + DROP_COL_NB)))) begin
+          logic [OP_W-1:0]       mult_res_org;
           logic [OP_W-1:0]       mult_res;
+          logic [KS_MAX_ERROR_W-1:0] corr_res;
+          logic [KS_MAX_ERROR_W-1:0] br_proc_corr_res;
           logic [LWE_COEF_W-1:0] br_proc_res;
 
-          mult_res    = mult_res_q[x_col][b].pop_front();
+          mult_res_org = mult_res_q[x_col][b].pop_front();
           br_proc_res = br_proc_lwe_q[b].pop_front();
+          br_proc_corr_res = br_proc_corr_q[b].pop_front();
 
           //$display("batch=%0d pbs_id=%0d x=%0d x_col=%0d mult_res=0x%0x",b, out_pbs_cnt[b], out_x_cnt[b], x_col, mult_res);
-          mult_res = 0 - mult_res;
-          mult_res = (mult_res >> (OP_W-LWE_COEF_W)) + mult_res[OP_W-LWE_COEF_W-1]; // mod switch
+          mult_res_org = 0 - mult_res_org;
+          mult_res = (mult_res_org >> (OP_W-LWE_COEF_W)) + mult_res_org[OP_W-LWE_COEF_W-1]; // mod switch
+
+          if (USE_MEAN_COMPENSATION)
+            corr_res = mult_res_org - (mult_res << (OP_W-LWE_COEF_W));
+          else
+            corr_res = '0;
 
           assert(mult_res[LWE_COEF_W-1:0] == br_proc_res)
           else begin
             $display("%t > ERROR: Out Proc [%0d] data mismatches exp=0x%0x seen=0x%0x.",$time, b, mult_res[LWE_COEF_W-1:0],br_proc_res);
+            error_out_process[b] <= 1'b1;
+          end
+
+          assert(corr_res == br_proc_corr_res)
+          else begin
+            $display("%t > ERROR: Out Proc [%0d] corr mismatches exp=0x%0x seen=0x%0x.",$time, b, corr_res,br_proc_corr_res);
             error_out_process[b] <= 1'b1;
           end
 

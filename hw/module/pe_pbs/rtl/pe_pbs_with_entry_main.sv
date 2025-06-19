@@ -132,11 +132,6 @@ module pe_pbs_with_entry_main
   input  logic [PID_W-1:0]                                             ks_boram_pid,
   input  logic                                                         ks_boram_parity,
 
-  // KS <-> Body correction RAM
-  input  logic                                                         ks_boram_corr_wr_en,
-  input  logic [KS_MAX_ERROR_W-1:0]                                    ks_boram_corr_data,
-  input  logic [PID_W-1:0]                                             ks_boram_corr_pid,
-
   // ModSW -> MMACC : from subs
   input  logic                                                         subs_main_ntt_acc_modsw_avail,
   input  logic [MAIN_PSI-1:0][R-1:0][MOD_Q_W-1:0]                      subs_main_ntt_acc_modsw_data,
@@ -238,6 +233,11 @@ module pe_pbs_with_entry_main
   // main <-> subs : control
   garb_avail_1h_t                                             main_subs_garb_avail_1h;
   logic                                                       main_subs_feed_mcmd_ack_ack;
+
+  // SEQ <-> Body correction RAM
+  logic                                                       seq_boram_corr_wr_en;
+  logic [KS_MAX_ERROR_W-1:0]                                  seq_boram_corr_data;
+  logic [PID_W-1:0]                                           seq_boram_corr_pid;
 
 // ============================================================================================== --
 // Output
@@ -358,6 +358,10 @@ module pe_pbs_with_entry_main
 
     .bsk_if_batch_start_1h (bsk_if_batch_start_1h),
     .ksk_if_batch_start_1h (ksk_if_batch_start_1h),
+
+    .seq_boram_corr_wr_en  (seq_boram_corr_wr_en),
+    .seq_boram_corr_data   (seq_boram_corr_data),
+    .seq_boram_corr_pid    (seq_boram_corr_pid),
 
     .reset_cache           (reset_cache),
     .reset_ks              (reset_ks),
@@ -480,9 +484,9 @@ module pe_pbs_with_entry_main
     .ks_boram_pid                 (ks_boram_pid),
     .ks_boram_parity              (ks_boram_parity),
 
-    .ks_boram_corr_wr_en          (ks_boram_corr_wr_en),
-    .ks_boram_corr_data           (ks_boram_corr_data),
-    .ks_boram_corr_pid            (ks_boram_corr_pid),
+    .seq_boram_corr_wr_en         (seq_boram_corr_wr_en),
+    .seq_boram_corr_data          (seq_boram_corr_data),
+    .seq_boram_corr_pid           (seq_boram_corr_pid),
 
     .inc_bsk_wr_ptr               (inc_bsk_wr_ptr),
     .inc_bsk_rd_ptr               (inc_bsk_rd_ptr),

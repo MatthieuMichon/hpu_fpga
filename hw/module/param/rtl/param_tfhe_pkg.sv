@@ -48,6 +48,8 @@ package param_tfhe_pkg;
   localparam int INTL_L_W    = ($clog2(INTL_L) == 0) ? 1 : $clog2(INTL_L);
   // Counter from 0 to LWE_K-1
   localparam int LWE_K_W     = $clog2(LWE_K) == 0 ? 1 : $clog2(LWE_K);
+  // Counter from 0 to LWE_K included
+  localparam int LWE_K_WW     = $clog2(LWE_K+1) == 0 ? 1 : $clog2(LWE_K+1);
   // Counter from 0 to GLWE_K_P1-1
   localparam int GLWE_K_P1_W = $clog2(GLWE_K_P1) == 0 ? 1 : $clog2(GLWE_K_P1);
   // Counter from 0 to LWE_K_P1-1

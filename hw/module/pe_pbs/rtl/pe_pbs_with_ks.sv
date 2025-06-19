@@ -101,11 +101,6 @@ module pe_pbs_with_ks
   output logic [PID_W-1:0]                                             ks_boram_pid,
   output logic                                                         ks_boram_parity,
 
-  //== KS <-> Body RAM (mean correction)
-  output logic                                                         ks_boram_corr_wr_en,
-  output logic [KS_MAX_ERROR_W-1:0]                                    ks_boram_corr_data,
-  output logic [PID_W-1:0]                                             ks_boram_corr_pid,
-
   //== Control
   // KSK pointer
   input  logic                                                         inc_ksk_wr_ptr,
@@ -244,10 +239,6 @@ module pe_pbs_with_ks
     .boram_data            (ks_boram_data),
     .boram_pid             (ks_boram_pid),
     .boram_parity          (ks_boram_parity),
-
-    .boram_corr_wr_en      (ks_boram_corr_wr_en),
-    .boram_corr_data       (ks_boram_corr_data),
-    .boram_corr_pid        (ks_boram_corr_pid),
 
     .reset_cache           (reset_cache),
     .mod_switch_mean_comp  (mod_switch_mean_comp),

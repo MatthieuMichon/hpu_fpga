@@ -95,9 +95,14 @@ module pep_mmacc_splitc_assembly
 
   // From KS
   input  logic                                                   ks_boram_wr_en,
-  input  logic [LWE_COEF_W-1:0]                                  ks_boram_data,
+  input  logic [MOD_KSK_W-1:0]                                   ks_boram_data,
   input  logic [PID_W-1:0]                                       ks_boram_pid,
   input  logic                                                   ks_boram_parity,
+
+  // From Seq
+  input  logic                                                   seq_boram_corr_wr_en,
+  input  logic [KS_MAX_ERROR_W-1:0]                              seq_boram_corr_data,
+  input  logic [PID_W-1:0]                                       seq_boram_corr_pid,
 
   // BSK
   input  logic                                                   inc_bsk_wr_ptr,
@@ -545,6 +550,10 @@ module pep_mmacc_splitc_assembly
     .ks_boram_data                   (ks_boram_data),
     .ks_boram_pid                    (ks_boram_pid),
     .ks_boram_parity                 (ks_boram_parity),
+
+    .seq_boram_corr_wr_en            (seq_boram_corr_wr_en),
+    .seq_boram_corr_data             (seq_boram_corr_data),
+    .seq_boram_corr_pid              (seq_boram_corr_pid),
 
     .inc_bsk_wr_ptr                  (inc_bsk_wr_ptr),
     .inc_bsk_rd_ptr                  (inc_bsk_rd_ptr),

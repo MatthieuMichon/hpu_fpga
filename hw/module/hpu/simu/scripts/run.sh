@@ -142,6 +142,7 @@ echo "-y                       : directory containing microcode files. (default 
 echo "-a                       : default ucode IOP (default CUST_0)"
 echo "-M                       : ISC depth (default $ISC_DEPTH)"
 echo "-T                       : Toml regif definition file (default \"$REGIF_FILE_S\"). Use several times to give all the regfiles, if several."
+echo "-p                       : USE_MEAN_COMPENSATION (default 1)"
 echo "-- <run_edalize options> : run_edalize options."
 
 
@@ -306,7 +307,7 @@ while getopts "Chzg:l:R:P:S:w:t:m:c:H:K:s:e:b:q:W:A:J:I:L:B:r:V:X:Y:Z:G:o:u:f:O:
       REGIF_FILE_S_TMP+=($OPTARG)
       ;;
     p)
-      MOD_SWITCH_MEAN_COMP=($OPTARG)
+      MOD_SWITCH_MEAN_COMP=$OPTARG
       ;;
     :)
       echo "$0: Must supply an argument to -$OPTARG." >&2

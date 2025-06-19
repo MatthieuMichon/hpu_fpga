@@ -27,6 +27,7 @@ module pep_ks_result_format
   output logic                    ctrl_res_cmd_rdy,
 
   input  logic [LWE_COEF_W-1:0]   br_proc_lwe,
+  input  logic [KS_MAX_ERROR_W-1:0] br_proc_corr,
   input  logic                    br_proc_vld,
   output logic                    br_proc_rdy,
 
@@ -46,6 +47,13 @@ module pep_ks_result_format
   localparam int CMD_FIFO_DEPTH    = 4; // 2 = ks_control + 2
   localparam int RESULT_FIFO_DEPTH = 4;
   localparam int LAST_X            = (LWE_K_P1 % LBX) == 0 ? LBX - 1 : (LWE_K_P1 % LBX) - 1;
+
+  typedef struct packed {
+    logic [KS_MAX_ERROR_W-1:0] corr; // mean compensation correction.
+    logic [LWE_COEF_W-1:0]     lwe;
+  } coef_t;
+
+  localparam int COEF_W = $bits(coef_t);
 
 // ============================================================================================== --
 // Input pipe
@@ -71,12 +79,16 @@ module pep_ks_result_format
     .out_rdy  (s0_cmd_rdy)
   );
 
-  logic [LWE_COEF_W-1:0]    s0_proc_lwe;
+  coef_t                    br_proc_coef;
+  coef_t                    s0_proc_coef;
   logic                     s0_proc_vld;
   logic                     s0_proc_rdy;
 
+  assign br_proc_coef.lwe  = br_proc_lwe;
+  assign br_proc_coef.corr = br_proc_corr;
+
   fifo_element #(
-    .WIDTH          (LWE_COEF_W),
+    .WIDTH          (COEF_W),
     .DEPTH          (2),
     .TYPE_ARRAY     (8'h12),
     .DO_RESET_DATA  (1'b0),
@@ -85,11 +97,11 @@ module pep_ks_result_format
     .clk      (clk),
     .s_rst_n  (s_rst_n),
 
-    .in_data  (br_proc_lwe),
+    .in_data  (br_proc_coef),
     .in_vld   (br_proc_vld),
     .in_rdy   (br_proc_rdy),
 
-    .out_data (s0_proc_lwe),
+    .out_data (s0_proc_coef),
     .out_vld  (s0_proc_vld),
     .out_rdy  (s0_proc_rdy)
   );
@@ -106,8 +118,8 @@ module pep_ks_result_format
   logic                                    s0_result_vld;
   logic                                    s0_result_rdy;
 
-  logic [BATCH_PBS_NB-1:0][LWE_COEF_W-1:0] lwe_a;
-  logic [BATCH_PBS_NB-1:0][LWE_COEF_W-1:0] lwe_aD;
+  coef_t [LWE_COEF_W-1:0]                  lwe_a;
+  coef_t [LWE_COEF_W-1:0]                  lwe_aD;
 
   //== keep track of the ks_loop
   logic [KS_BLOCK_COL_W-1:0]               s0_ks_loop;
@@ -155,7 +167,7 @@ module pep_ks_result_format
 
   always_comb
     for (int i=0; i<BATCH_PBS_NB; i=i+1)
-      lwe_aD[i] = s0_proc_vld && s0_proc_rdy && (s0_lwe_cnt == i) ? s0_proc_lwe : lwe_a[i];
+      lwe_aD[i] = s0_proc_vld && s0_proc_rdy && (s0_lwe_cnt == i) ? s0_proc_coef : lwe_a[i];
 
   always_ff @(posedge clk)
     if (!s_rst_n || reset_loop) s0_lwe_cnt <= '0;
@@ -164,10 +176,15 @@ module pep_ks_result_format
   always_ff @(posedge clk)
     lwe_a <= lwe_aD;
 
-  assign s0_result.lwe_a   = lwe_aD;
-  assign s0_result.ks_loop = s0_ks_loop * LBX + s0_x;
-  assign s0_result.wp      = s0_cmd.wp;
-  assign s0_result.rp      = s0_cmd.rp;
+  always_comb begin
+    s0_result.ks_loop = s0_ks_loop * LBX + s0_x;
+    s0_result.wp      = s0_cmd.wp;
+    s0_result.rp      = s0_cmd.rp;
+    for (int i=0; i<BATCH_PBS_NB; i=i+1) begin
+      s0_result.lwe_a[i]   = lwe_aD[i].lwe;
+      s0_result.corr_a[i]  = lwe_aD[i].corr;
+    end
+  end
 
 // pragma translate_off
   always_ff @(posedge clk)

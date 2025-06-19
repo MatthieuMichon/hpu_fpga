@@ -108,6 +108,8 @@ for i in `seq 1 5`; do
     index=$(($RANDOM % $size))
     SLR_LATENCY=${SLR_LATENCY_L[$index]}
 
+    USE_BPIP_OPPORTUNISM=$(($RANDOM % 2))
+
     cmd="${SCRIPT_DIR}/run.sh \
                     -R $R \
                     -S $S \
@@ -122,6 +124,7 @@ for i in `seq 1 5`; do
                     --  -P INST_THROUGHPUT int $INST_THROUGHPUT \
                         -F PEP_MSPLIT $MSPLIT_TYPE \
                         -P SLR_LATENCY int $SLR_LATENCY \
+                        -P USE_BPIP_OPPORTUNISM int $USE_BPIP_OPPORTUNISM \
                     $args"
 
   echo "==========================================================="

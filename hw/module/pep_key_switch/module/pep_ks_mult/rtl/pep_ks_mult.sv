@@ -62,7 +62,6 @@ module pep_ks_mult
   input  logic                                        ctrl_mult_last_eoy,
   input  logic                                        ctrl_mult_last_last_iter, // last iteration within the column
   input  logic [TOTAL_BATCH_NB_W-1:0]                 ctrl_mult_last_batch_id,
-  input  logic [PID_W-1:0]                            ctrl_mult_last_pid,
 
   input  logic [LBX-1:0][LBY-1:0][LBZ-1:0][OP_W-1:0]  ksk,
   input  logic [LBX-1:0][LBY-1:0]                     ksk_vld,
@@ -72,7 +71,6 @@ module pep_ks_mult
   output logic [LBX-1:0]                              mult_outp_avail,
   output logic [LBX-1:0]                              mult_outp_last_pbs,
   output logic [LBX-1:0][TOTAL_BATCH_NB_W-1:0]        mult_outp_batch_id,
-  output logic [LBX-1:0][PID_W-1:0]                   mult_outp_pid,
 
   output logic                                        error
 );
@@ -85,7 +83,6 @@ module pep_ks_mult
     logic                        eoy;
     logic                        last_iter;
     logic [TOTAL_BATCH_NB_W-1:0] batch_id;
-    logic [PID_W-1:0]            pid;
   } info_t;
 
   localparam int INFO_W = $bits(info_t);
@@ -112,13 +109,11 @@ module pep_ks_mult
   logic [LBX-1:0]                             mult_outp_availD;
   logic [LBX-1:0]                             mult_outp_last_iterD;
   logic [LBX-1:0][TOTAL_BATCH_NB_W-1:0]       mult_outp_batch_idD;
-  logic [LBX-1:0][PID_W-1:0]                  mult_outp_pidD;
 
   assign ctrl_mult_info.eol       = ctrl_mult_last_eol;
   assign ctrl_mult_info.eoy       = ctrl_mult_last_eoy;
   assign ctrl_mult_info.last_iter = ctrl_mult_last_last_iter;
   assign ctrl_mult_info.batch_id  = ctrl_mult_last_batch_id;
-  assign ctrl_mult_info.pid       = ctrl_mult_last_pid;
 
   assign node_info[0]  = ctrl_mult_info;
 
@@ -371,7 +366,6 @@ module pep_ks_mult
       assign mult_outp_dataD[gen_x]      = acc;
       assign mult_outp_last_iterD[gen_x] = s1_node_res_info.eoy;
       assign mult_outp_batch_idD[gen_x]  = s1_node_res_info.batch_id;
-      assign mult_outp_pidD[gen_x]       = s1_node_res_info.pid;
 
     end // for gen_x
   endgenerate
@@ -387,7 +381,6 @@ module pep_ks_mult
     mult_outp_data     <= mult_outp_dataD;
     mult_outp_last_pbs <= mult_outp_last_iterD;
     mult_outp_batch_id <= mult_outp_batch_idD;
-    mult_outp_pid      <= mult_outp_pidD;
   end
 
 //===============================================

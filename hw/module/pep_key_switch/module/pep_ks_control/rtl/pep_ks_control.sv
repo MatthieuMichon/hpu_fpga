@@ -66,8 +66,7 @@ module pep_ks_control
   output logic                                ctrl_mult_last_eol,
   output logic                                ctrl_mult_last_eoy,
   output logic                                ctrl_mult_last_last_iter, // last iteration within the column
-  output logic [TOTAL_BATCH_NB_W-1:0]         ctrl_mult_last_batch_id, // Unused. Is a constant.
-  output logic [PID_W-1:0]                    ctrl_mult_last_pid
+  output logic [TOTAL_BATCH_NB_W-1:0]         ctrl_mult_last_batch_id // Unused. Is a constant.
 
 );
 
@@ -304,7 +303,6 @@ module pep_ks_control
     .ctrl_mult_last_eoy         (ctrl_mult_last_eoy),
     .ctrl_mult_last_last_iter   (ctrl_mult_last_last_iter),
     .ctrl_mult_last_batch_id    (ctrl_mult_last_batch_id),
-    .ctrl_mult_last_pid         (ctrl_mult_last_pid),
 
     .batch_cmd                  (batch_cmd),
     .batch_cmd_avail            (batch_cmd_avail),

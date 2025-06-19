@@ -88,6 +88,7 @@ for i in `seq 1 5`; do
     KS_IF_SUBW_NB=$(($RANDOM %2))
     KS_IF_SUBW_NB=$((2**$KS_IF_SUBW_NB))
     KS_IF_COEF_NB=$(($LBY / $KS_IF_SUBW_NB))
+    USE_MEAN_COMP=$(($RANDOM %2))
 
     cmd="${SCRIPT_DIR}/run.sh \
           -R $R \
@@ -105,7 +106,8 @@ for i in `seq 1 5`; do
           -H $TOTAL_PBS_NB \
           -x $KS_IF_SUBW_NB \
           -y $KS_IF_COEF_NB \
-          -- $args "
+          -- -P USE_MEAN_COMP int $USE_MEAN_COMP \
+          $args "
 
     echo "==========================================================="
     echo "INFO> Running : $cmd"

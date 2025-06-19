@@ -27,9 +27,6 @@ module pep_ks_out_process
   input  logic [LBX-1:0]                                mult_outp_avail,
   input  logic [LBX-1:0]                                mult_outp_last_pbs, // last coef of column
   input  logic [LBX-1:0][TOTAL_BATCH_NB_W-1:0]          mult_outp_batch_id,
-  // We need the PID of the multiplication result to be able to write correction factors into the
-  // body_ram.
-  input  logic [LBX-1:0][PID_W-1:0]                     mult_outp_pid,
 
   // body
   input  logic [TOTAL_BATCH_NB-1:0][OP_W-1:0]           bfifo_outp_data,
@@ -39,6 +36,7 @@ module pep_ks_out_process
 
   // LWE coeff
   output logic [TOTAL_BATCH_NB-1:0][LWE_COEF_W-1:0]     br_proc_lwe,
+  output logic [TOTAL_BATCH_NB-1:0][KS_MAX_ERROR_W-1:0] br_proc_corr, // mean compensation correction
   output logic [TOTAL_BATCH_NB-1:0]                     br_proc_vld,
   input  logic [TOTAL_BATCH_NB-1:0]                     br_proc_rdy,
 
@@ -48,15 +46,10 @@ module pep_ks_out_process
   output logic [TOTAL_BATCH_NB-1:0][PID_W-1:0]          br_bfifo_pid,
   output logic [TOTAL_BATCH_NB-1:0]                     br_bfifo_parity,
 
-  // Correct access to the body RAM
-  output logic [TOTAL_BATCH_NB-1:0]                     br_bfifo_corr_wr_en,
-  output logic [TOTAL_BATCH_NB-1:0][KS_MAX_ERROR_W-1:0] br_bfifo_corr_data,
-  output logic [TOTAL_BATCH_NB-1:0][PID_W-1:0]          br_bfifo_corr_pid,
-
   // reset cache
   input  logic                                          reset_cache,
 
-  // Config
+  // Config (quasi static)
   input  logic                                          mod_switch_mean_comp,
 
   // BCOL done
@@ -96,6 +89,7 @@ module pep_ks_out_process
 // typedef
 // ============================================================================================== --
   typedef struct packed {
+    logic [KS_MAX_ERROR_W-1:0] corr; // mean compensation correction.
     logic [TOTAL_BATCH_NB-1:0] batch_id_1h;
     logic                      last_pbs;
     logic                      last_mask;
@@ -111,7 +105,6 @@ module pep_ks_out_process
   logic [LBX-1:0]                       s0_x_avail;
   logic [LBX-1:0]                       s0_x_last_pbs;
   logic [LBX-1:0][TOTAL_BATCH_NB_W-1:0] s0_x_batch_id;
-  logic [LBX-1:0][PID_W-1:0]            s0_x_pid;
   logic                                 reset_loop;
 
   always_ff @(posedge clk)
@@ -128,7 +121,6 @@ module pep_ks_out_process
     s0_x_data     <= mult_outp_data;
     s0_x_last_pbs <= mult_outp_last_pbs;
     s0_x_batch_id <= mult_outp_batch_id;
-    s0_x_pid      <= mult_outp_pid;
   end
 
 // ---------------------------------------------------------------------------------------------- --
@@ -209,20 +201,6 @@ module pep_ks_out_process
 
   logic [TOTAL_BATCH_NB-1:0]            outp_ks_loop_done_mhD;
   logic [TOTAL_BATCH_NB-1:0]            inc_ksk_rd_ptrD;
-
-  // For the mod_switch_error accumulation daisy chain
-  typedef struct packed {
-    logic [KS_MAX_ERROR_W-1:0]   data; // signed
-    logic [PID_W-1:0]            pid;
-    logic                        parity;
-    logic [TOTAL_BATCH_NB_W-1:0] batch_id;
-  } acc_chain_data_t;
-
-  acc_chain_data_t prev_br_acc_data  [LBX:0];
-  logic            prev_br_acc_avail [LBX:0];
-  acc_chain_data_t next_br_acc_data  [LBX-1:0];
-  logic            next_br_acc_avail [LBX-1:0];
-  // --------------------------------
 
   assign inc_ksk_rd_ptrD = x_ksk_rp_done[LBX-1];
 
@@ -337,27 +315,23 @@ module pep_ks_out_process
         // ----------------------------------------------
         logic [OP_W-1:0]             s1_lwe_coef;
         logic                        s1_avail;
-        logic                        s1_x_avail;
         logic                        s1_last_pbs;
         logic [TOTAL_BATCH_NB_W-1:0] s1_batch_id;
         logic                        s1_is_body;
         logic                        s1_last_mask;
-        logic                        s1_last_col;
         logic                        s1_x_parity;
         logic                        s1_availD;
         logic [PID_W-1:0]            s1_pid;
         logic [PID_W-1:0]            s1_pidD;
 
-        assign s1_availD = s0_x_avail[gen_x] & (s0_cur_x < KS_COL_W'(LWE_K_P1)); // Dump additional columns.
+        // Additional bit for LWE_K_P1, since s0_cur_x counts from 0 to LWE_K_P1-1 included,
+        // and if LWE_K_P1 is a power of 2, and additional bit is needed to store the value.
+        assign s1_availD = s0_x_avail[gen_x] & (s0_cur_x < (KS_COL_W+1)'(LWE_K_P1)); // Dump additional columns.
+        assign s1_pidD   = s0_pid[s0_x_batch_id[gen_x]]; // Only valid for body coef.
 
         always_ff @(posedge clk)
-          if (!s_rst_n) begin
-            s1_avail <= '0;
-            s1_x_avail <= '0;
-          end else begin
-            s1_avail <= s1_availD;
-            s1_x_avail <= s0_x_avail[gen_x];
-          end
+          if (!s_rst_n) s1_avail <= '0;
+          else          s1_avail <= s1_availD;
 
         always_ff @(posedge clk) begin
           s1_lwe_coef   <= s0_lwe_coef;
@@ -366,8 +340,7 @@ module pep_ks_out_process
           s1_is_body    <= s0_is_body;
           s1_last_mask  <= s0_last_mask;
           s1_x_parity   <= s0_x_parity;
-          s1_pid        <= s0_x_pid[gen_x];
-          s1_last_col   <= s0_last_col;
+          s1_pid        <= s1_pidD;
         end
 
         logic s1_body_avail;
@@ -389,24 +362,14 @@ module pep_ks_out_process
                                       - KS_MAX_ERROR_W'((s1_lwe_coef[ABS_ERROR_W-1] << ABS_ERROR_W))
                                       : '0;
 
-        //pragma translate_off
-        always @(posedge clk)
-          if(s_rst_n && s0_x_avail[gen_x] && s0_is_body)
-            assert_local_pid:
-            assert(s0_pid[s0_x_batch_id[gen_x]] == s0_x_pid[gen_x])
-            else $fatal(1, "Local PID (%0d) does not match the body PID (%0d) for gen_x: %0d",
-              s0_pid[s0_x_batch_id[gen_x]], s0_x_pid[gen_x], gen_x);
-        //pragma translate_on
-
         // ----------------------------------------------
         // s2 : pipe
         // ----------------------------------------------
         logic [LWE_COEF_W-1:0]       s2_lwe_mdsw;
         logic [OP_W-1:0]             s2_lwe_coef;
-        acc_chain_data_t             s2_mod_switch_err_data;
+        logic [KS_MAX_ERROR_W-1:0]   s2_lwe_corr;
         logic                        s2_mask_avail;
         logic                        s2_body_avail;
-        logic                        s2_mod_switch_err_avail;
         logic                        s2_last_pbs;
         logic                        s2_last_mask;
         logic                        s2_x_parity;
@@ -417,12 +380,10 @@ module pep_ks_out_process
           if (!s_rst_n) begin
             s2_mask_avail <= '0;
             s2_body_avail <= '0;
-            s2_mod_switch_err_avail <= '0;
           end
           else begin
-            s2_mask_avail           <= s1_mask_avail;
-            s2_body_avail           <= s1_body_avail;
-            s2_mod_switch_err_avail <= s1_x_avail;
+            s2_mask_avail <= s1_mask_avail;
+            s2_body_avail <= s1_body_avail;
           end
 
         always_ff @(posedge clk) begin
@@ -433,13 +394,7 @@ module pep_ks_out_process
           s2_pid       <= s1_pid;
           s2_x_parity  <= s1_x_parity;
           s2_lwe_coef  <= s1_lwe_coef;
-        end
-
-        always_ff @(posedge clk) begin
-          s2_mod_switch_err_data.data     <= s1_lwe_mod_switch_err;
-          s2_mod_switch_err_data.pid      <= s1_pid;
-          s2_mod_switch_err_data.parity   <= s1_x_parity;
-          s2_mod_switch_err_data.batch_id <= s1_batch_id;
+          s2_lwe_corr  <= s1_lwe_mod_switch_err;
         end
 
         // ----------------------------------------------
@@ -449,107 +404,6 @@ module pep_ks_out_process
         assign x_br_bfifo_dataD[gen_x]   = s2_lwe_coef;
         assign x_br_bfifo_pidD[gen_x]    = s2_pid;
         assign x_br_bfifo_parityD[gen_x] = s2_x_parity;
-
-        // ----------------------------------------------
-        // Mean mod_switch_error accumulation
-        // ----------------------------------------------
-
-        // Fifo to the final X accumulator
-        // The assumption here is that all column data will be ready when accumulating through the
-        // pipeline.
-        acc_chain_data_t s3_br_data;
-        logic            s3_br_vld;
-
-        // X accumulation daisy chain
-        if (gen_x == 0) begin: first_x
-          always_ff @(posedge clk) begin
-            if(!s_rst_n) begin
-              s3_br_vld <= '0;
-            end else begin
-              s3_br_vld <= s2_mod_switch_err_avail;
-            end
-          end
-
-          always_ff @(posedge clk) begin
-            s3_br_data <= s2_mod_switch_err_data;
-          end
-
-          assign prev_br_acc_avail[0] = s3_br_vld;
-          assign prev_br_acc_data[0]  = '0;
-        end else begin: next_x
-          logic s3_br_rdy;
-          logic s2_mod_switch_err_rdy;
-          fifo_element #(
-            .WIDTH          ($bits(s2_mod_switch_err_data)),
-            .DEPTH          (2),
-            .TYPE_ARRAY     (8'h12),
-            .DO_RESET_DATA  (0),
-            .RESET_DATA_VAL (0)
-          ) mod_switch_err_fifo (
-            .clk      (clk),
-            .s_rst_n  (s_rst_n),
-
-            .in_data  (s2_mod_switch_err_data),
-            .in_vld   (s2_mod_switch_err_avail),
-            .in_rdy   (s2_mod_switch_err_rdy),
-
-            .out_data (s3_br_data),
-            .out_vld  (s3_br_vld),
-            .out_rdy  (s3_br_rdy)
-          );
-
-          assign s3_br_rdy = prev_br_acc_avail[gen_x];
-
-          // pragma translate_off
-          always_ff @(posedge clk)
-            if (s_rst_n)
-              assert_mod_switch_err_fifo_not_full:
-              assert((s2_mod_switch_err_avail && s2_mod_switch_err_rdy) || (!s2_mod_switch_err_avail))
-              else $fatal(1,"%t > ERROR: mod_switch_err_fifo[%0d] is full when in_vld == 1!",$time, gen_x);
-
-          always_ff @(posedge clk)
-            if (s_rst_n)
-              assert_mod_switch_err_fifo_ready:
-              assert((s3_br_rdy && s3_br_vld) || (!s3_br_rdy))
-              else $fatal(1,"%t > ERROR: mod_switch_err_fifo[%0d] is not ready when needed!",$time, gen_x);
-          // pragma translate_on
-        end
-
-        logic            next_br_acc_avail_ff;
-        acc_chain_data_t next_br_acc_data_ff;
-
-        always_ff @(posedge clk) begin
-          if(!s_rst_n) begin
-            next_br_acc_avail_ff <= '0;
-          end else begin
-            next_br_acc_avail_ff <= prev_br_acc_avail[gen_x];
-          end
-        end
-
-        always_ff @(posedge clk) begin
-          next_br_acc_data_ff.data     <= prev_br_acc_data[gen_x].data     + s3_br_data.data;
-          next_br_acc_data_ff.pid      <= prev_br_acc_data[gen_x].pid      | s3_br_data.pid;
-          next_br_acc_data_ff.batch_id <= prev_br_acc_data[gen_x].batch_id | s3_br_data.batch_id;
-        end
-
-        if (gen_x != 0)
-          always_ff @(posedge clk)
-            if(s_rst_n && prev_br_acc_avail[gen_x]) begin
-              assert_daisy_chain_pid:
-              assert(prev_br_acc_data[gen_x].pid == s3_br_data.pid)
-              else $fatal(1, "%t> ERROR: The data in the accumulation chain does not belong to the same pid: %0d != %0d",
-                             prev_br_acc_data[gen_x].pid, s3_br_data.pid);
-
-              assert_daisy_chain_batch_id:
-              assert(prev_br_acc_data[gen_x].batch_id == s3_br_data.batch_id)
-              else $fatal(1, "%t> ERROR: The data in the accumulation chain does not belong to the same batch_id: %0d != %0d",
-                             prev_br_acc_data[gen_x].batch_id, s3_br_data.batch_id);
-            end
-
-        assign next_br_acc_data[gen_x]    = next_br_acc_data_ff;
-        assign next_br_acc_avail[gen_x]   = next_br_acc_avail_ff;
-        assign prev_br_acc_data[gen_x+1]  = next_br_acc_data[gen_x];
-        assign prev_br_acc_avail[gen_x+1] = next_br_acc_avail[gen_x];
 
         // ----------------------------------------------
         // xfifo
@@ -566,6 +420,7 @@ module pep_ks_out_process
         assign xfifo_in_data.last_pbs    = s2_last_pbs;
         assign xfifo_in_data.last_mask   = s2_last_mask;
         assign xfifo_in_data.coef        = s2_lwe_mdsw;
+        assign xfifo_in_data.corr        = s2_lwe_corr;
 
         fifo_reg #(
           .WIDTH       (XDATA_W),
@@ -647,72 +502,47 @@ module pep_ks_out_process
         // Instances
         //---------------------------------------------
         logic [LWE_COEF_W-1:0] lfifo_in_data;
+        logic [KS_MAX_ERROR_W-1:0] lfifo_in_corr;
         logic                  lfifo_in_ks_loop_done;
         logic                  lfifo_in_vld;
         logic                  lfifo_in_rdy;
         logic [LWE_COEF_W-1:0] lfifo_out_data;
+        logic [KS_MAX_ERROR_W-1:0] lfifo_out_corr;
         logic                  lfifo_out_ks_loop_done;
         logic                  lfifo_out_vld;
         logic                  lfifo_out_rdy;
 
         assign lfifo_in_data = l_x_data.coef;
+        assign lfifo_in_corr = l_x_data.corr;
         assign lfifo_in_vld  = l_x_vld;
         assign l_x_rdy       = lfifo_in_rdy;
         assign lfifo_in_ks_loop_done = l_x_data.last_pbs & (l_last_x_id || l_x_data.last_mask);
 
         assign l_wr_en       = lfifo_in_vld & lfifo_in_rdy;
         fifo_reg #(
-          .WIDTH       (LWE_COEF_W + 1),
+          .WIDTH       (KS_MAX_ERROR_W+LWE_COEF_W + 1),
           .DEPTH       (LFIFO_DEPTH),
           .LAT_PIPE_MH (2'b11)
         ) lfifo (
           .clk      (clk),
           .s_rst_n  (s_rst_n),
 
-          .in_data  ({lfifo_in_ks_loop_done,lfifo_in_data}),
+          .in_data  ({lfifo_in_ks_loop_done,lfifo_in_corr,lfifo_in_data}),
           .in_vld   (lfifo_in_vld),
           .in_rdy   (lfifo_in_rdy),
 
-          .out_data ({lfifo_out_ks_loop_done,lfifo_out_data}),
+          .out_data ({lfifo_out_ks_loop_done,lfifo_out_corr,lfifo_out_data}),
           .out_vld  (lfifo_out_vld),
           .out_rdy  (lfifo_out_rdy)
         );
 
         assign br_proc_lwe[gen_b] = lfifo_out_data;
+        assign br_proc_corr[gen_b]= lfifo_out_corr;
         assign br_proc_vld[gen_b] = lfifo_out_vld;
         assign lfifo_out_rdy      = br_proc_rdy[gen_b] | reset_loop;
         assign outp_ks_loop_done_mhD[gen_b] = lfifo_out_ks_loop_done & lfifo_out_vld & lfifo_out_rdy;
       end // for gen_b
   endgenerate
-
-// ============================================================================================== --
-// Send the correction factor out
-// ============================================================================================== --
-
-  logic [TOTAL_BATCH_NB-1:0]            br_bfifo_corr_wr_enD;
-  logic [TOTAL_BATCH_NB-1:0][OP_W-1:0]  br_bfifo_corr_dataD;
-  logic [TOTAL_BATCH_NB-1:0][PID_W-1:0] br_bfifo_corr_pidD;
-
-  assign br_bfifo_corr_wr_enD = {TOTAL_BATCH_NB{next_br_acc_avail[LBX-1]}}
-                              & (TOTAL_BATCH_NB'(1) << next_br_acc_data[LBX-1].batch_id);
-
-  always_comb begin
-    br_bfifo_corr_dataD   = '0;
-    br_bfifo_corr_pidD    = '0;
-    for (int i=0; i<TOTAL_BATCH_NB; i=i+1) begin
-      br_bfifo_corr_dataD[i]   = (next_br_acc_data[LBX-1].data & {OP_W{br_bfifo_corr_wr_enD[i]}});
-      br_bfifo_corr_pidD[i]    = (next_br_acc_data[LBX-1].pid  & {PID_W{br_bfifo_corr_wr_enD[i]}});
-    end
-  end
-
-  always_ff @(posedge clk)
-    if (!s_rst_n) br_bfifo_corr_wr_en <= '0;
-    else          br_bfifo_corr_wr_en <= br_bfifo_corr_wr_enD;
-
-  always_ff @(posedge clk) begin
-    br_bfifo_corr_data   <= br_bfifo_corr_dataD;
-    br_bfifo_corr_pid    <= br_bfifo_corr_pidD;
-  end
 
 // ============================================================================================== --
 // br bfifo
