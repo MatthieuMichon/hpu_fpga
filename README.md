@@ -358,7 +358,7 @@ We are using AMD [QDMA](https://github.com/Xilinx/dma_ip_drivers) linux driver f
 git clone https://github.com/zama-ai/dma_ip_drivers.git zama_qdma
 
 # before adding kernel module, let's define correctly its rights on the host machine
-sudo cp zama_qdma/scripts/42-qdma.rules /etc/udev/rules.d/
+sudo cp zama_qdma/QDMA/linux-kernel/scripts/42-qdma.rules /etc/udev/rules.d/
 udevadm control --reload-rules && udevadm trigger
 
 cd zama_qdma/QDMA/linux-kernel/
