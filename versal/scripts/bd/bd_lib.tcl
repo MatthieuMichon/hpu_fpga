@@ -25,11 +25,10 @@ proc check_version {scripts_vivado_version} {
   return $current_vivado_version
 }
 
-
 ################################################################
 # Check parent
 ################################################################
-# Return parentObj if everythng is OK
+# Return parentObj if everything is OK
 proc check_parent_hier { parentCell nameHier } {
   if { $parentCell eq "" || $nameHier eq "" } {
      catch {common::send_gid_msg -ssname BD::TCL -id 2092 -severity "ERROR" "create_hier_cell_base_logic() - Empty argument(s)!"}
@@ -53,7 +52,7 @@ proc check_parent_hier { parentCell nameHier } {
   return $parentObj
 }
 
-# Return parentObj if everythng is OK
+# Return parentObj if everything is OK
 # If parentCell is "", return root
 proc check_parent_root { parentCell } {
   if { $parentCell eq "" } {

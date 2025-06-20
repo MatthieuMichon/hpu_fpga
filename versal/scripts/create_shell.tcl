@@ -6,6 +6,22 @@
 # They are all bash variables defined either in setup or in justfile:
 # We need to access some of them through child tcl scripts that doesn't
 # accept arguments in vivado's project mode
+#
+# This script needs an input argument ntt_psi which represents the size of
+# the NTT that is implemented.
+
+# Parse input argument
+if {$::argc > 1} {
+    puts "ERROR: Wrong number of arguments. Need only 1, or none: argc=$::argc, argv=$::argv."
+    exit 1
+} elseif {$::argc == 0} {
+    set ntt_psi 128
+    puts "INFO: Use default ntt_psi=$ntt_psi."
+} else {
+    set ntt_psi [lindex $::argv 0]
+}
+
+puts "INFO: Use ntt_psi=$ntt_psi"
 
 set PROJECT_DIR     $::env(PROJECT_DIR)
 set XIL_PART        $::env(XILINX_PART)

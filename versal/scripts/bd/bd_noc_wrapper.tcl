@@ -175,6 +175,7 @@ proc create_hier_cell_noc_wrapper { parentCell nameHier ntt_psi } {
   set cpm_pcie_noc_axi1_clk  [ create_bd_pin -dir I -type CLK cpm_pcie_noc_axi1_clk ]
   set pmc_axi_noc_axi0_clk   [ create_bd_pin -dir I -type CLK pmc_axi_noc_axi0_clk ]
   set lpd_axi_noc_clk        [ create_bd_pin -dir I -type CLK lpd_axi_noc_clk ]
+  set pmc_tandem_clk         [ create_bd_pin -dir I -type CLK pmc_tandem_clk ]
 
   set mgmt_clk               [ create_bd_pin -dir I -type CLK mgmt_clk ]
   set hpu_noc_clk            [ create_bd_pin -dir I -type CLK hpu_noc_clk ]
@@ -187,6 +188,7 @@ proc create_hier_cell_noc_wrapper { parentCell nameHier ntt_psi } {
   }
 
   set s_axi_pcie_mgmt_slr0   [ create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 s_axi_pcie_mgmt_slr0 ]
+  set s_axi_tandem_loopback [ create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 s_axi_tandem_loopback ]
 
   set cpm_pcie_noc_0 [ create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 cpm_pcie_noc_0 ]
   set cpm_pcie_noc_1 [ create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 cpm_pcie_noc_1 ]
@@ -242,7 +244,7 @@ proc create_hier_cell_noc_wrapper { parentCell nameHier ntt_psi } {
     CONFIG.HBM_REF_CLK_FREQ0 $HBM_REF_FREQ \
     CONFIG.HBM_REF_CLK_FREQ1 $HBM_REF_FREQ \
     CONFIG.HBM_REF_CLK_SELECTION {External} \
-    CONFIG.NUM_CLKS [expr 6 + $LPD_AXI_NB + $REGIF_CLK_NB] \
+    CONFIG.NUM_CLKS [expr 7 + $LPD_AXI_NB + $REGIF_CLK_NB] \
     CONFIG.NUM_HBM_BLI $HNMU_AXI_NB \
     CONFIG.NUM_MI [expr $AXI_PCIE_NB + $REGIF_NB*$REGIF_CLK_NB] \
     CONFIG.NUM_NMI {4} \
@@ -308,10 +310,10 @@ proc create_hier_cell_noc_wrapper { parentCell nameHier ntt_psi } {
   #== NOC Outputs
   #NSU
   set mgmt_ofs 0
-  set mregif_ofs [expr $mgmt_ofs + 1]
+  set mregif_ofs [expr $mgmt_ofs + $AXI_PCIE_NB]
 
   set pcie_mgmt_noc_pins_l [list]
-  for { set i 0}  {$i < 1} {incr i} {
+  for { set i 0}  {$i < $AXI_PCIE_NB} {incr i} {
     lappend pcie_mgmt_noc_pins_l [format "M%02d_AXI" [expr $i + $mgmt_ofs]]
   }
 
@@ -360,7 +362,7 @@ proc create_hier_cell_noc_wrapper { parentCell nameHier ntt_psi } {
     lappend mregif_clock_pins_l [format "aclk%0d" [expr $i + $other_aclk_ofs + $mregif_ofs]]
   }
   set pcie_mgmt_noc_clock_pins_l [list]
-  for { set i 0}  {$i < 1} {incr i} {
+  for { set i 0}  {$i < $AXI_PCIE_NB} {incr i} {
     lappend pcie_mgmt_noc_clock_pins_l [format "aclk%0d" [expr $i + $other_aclk_ofs + $mgmt_ofs]]
   }
   set axis_noc_clock_pins_l [list]
@@ -481,7 +483,9 @@ proc create_hier_cell_noc_wrapper { parentCell nameHier ntt_psi } {
   set pcie_cnx_0 [list]
   lappend pcie_cnx_0 [lindex $ddr_noc_pins_l 0] $pcie_ddr_dma_qos
   lappend pcie_cnx_0 [lindex $ddr_noc_pins_l 2] $pcie_ddr_dma_qos
-  lappend pcie_cnx_0 [lindex $pcie_mgmt_noc_pins_l 0] $pcie_axil_qos
+  for { set i 0}  {$i < $AXI_PCIE_NB} {incr i 1} {
+    lappend pcie_cnx_0 [lindex $pcie_mgmt_noc_pins_l $i] $pcie_axil_qos
+  }
   # all HBM PCs, even ports
   for { set i 0}  {$i < $HBM_PORT_NB} {incr i 2} {
     set hbm_port_name [format "HBM%01d_PORT%01d" [expr int($i / 4)] [expr ($i%4)]]
@@ -497,7 +501,6 @@ proc create_hier_cell_noc_wrapper { parentCell nameHier ntt_psi } {
    CONFIG.CATEGORY {ps_pcie} \
  ] [get_bd_intf_pins axi_noc_cips/[lindex $cpm_noc_pins_l 0]]
 
-
   # CPM 1
   # Connect to DDRs (M00_INI, M02_INI) and mgmt (M00_AXI)
   # Connect to all HBM PC, odd ports
@@ -505,6 +508,7 @@ proc create_hier_cell_noc_wrapper { parentCell nameHier ntt_psi } {
   lappend pcie_cnx_1 [lindex $ddr_noc_pins_l 1] $pcie_ddr_dma_qos
   lappend pcie_cnx_1 [lindex $ddr_noc_pins_l 3] $pcie_ddr_dma_qos
   lappend pcie_cnx_1 [lindex $pcie_mgmt_noc_pins_l 0] $pcie_axil_qos
+  lappend pcie_cnx_1 [lindex $pcie_mgmt_noc_pins_l 1] $pcie_axil_qos
   # all HBM PCs, odd ports
   for { set i 1}  {$i < $HBM_PORT_NB} {incr i 2} {
     set hbm_port_name [format "HBM%01d_PORT%01d" [expr int($i / 4)] [expr ($i%4)]]
@@ -532,6 +536,11 @@ proc create_hier_cell_noc_wrapper { parentCell nameHier ntt_psi } {
    CONFIG.NOC_PARAMS {} \
    CONFIG.CATEGORY {ps_pmc} \
  ] [get_bd_intf_pins axi_noc_cips/[lindex $pmc_noc_pins_l 0]]
+
+  # changing category for tandem loopback
+  set_property -dict [ list \
+   CONFIG.CATEGORY {ps_pmc} \
+  ] [get_bd_intf_pins axi_noc_cips/[lindex $pcie_mgmt_noc_pins_l 1]]
 
 
   # RPU - LPD
@@ -613,7 +622,7 @@ proc create_hier_cell_noc_wrapper { parentCell nameHier ntt_psi } {
   }
 
   # MGMT
-  for { set i 0}  {$i < 1} {incr i} {
+  for { set i 0}  {$i < $AXI_PCIE_NB} {incr i} {
     set_property -dict [ list \
     CONFIG.ASSOCIATED_BUSIF [lindex $pcie_mgmt_noc_pins_l $i] \
     ] [get_bd_pins axi_noc_cips/[lindex $pcie_mgmt_noc_clock_pins_l $i]]
@@ -724,6 +733,7 @@ proc create_hier_cell_noc_wrapper { parentCell nameHier ntt_psi } {
   connect_bd_net [get_bd_pins pmc_axi_noc_axi0_clk] [get_bd_pins axi_noc_cips/[lindex $pmc_noc_clock_pins_l 0]]
   connect_bd_net [get_bd_pins lpd_axi_noc_clk] [get_bd_pins axi_noc_cips/[lindex $lpd_noc_clock_pins_l 0]]
   connect_bd_net [get_bd_pins mgmt_clk] [get_bd_pins axi_noc_cips/[lindex $pcie_mgmt_noc_clock_pins_l 0]]
+  connect_bd_net [get_bd_pins pmc_tandem_clk] [get_bd_pins axi_noc_cips/[lindex $pcie_mgmt_noc_clock_pins_l 1]]
   connect_bd_net [get_bd_pins hpu_noc_clk] [get_bd_pins axi_noc_cips/[lindex $hpu_noc_clock_pins_l 0]] [get_bd_pins axis_noc/[lindex $axis_noc_clock_pins_l 0]]
 
   for {set j 0}  {$j < $REGIF_CLK_NB} {incr j} {
@@ -733,6 +743,7 @@ proc create_hier_cell_noc_wrapper { parentCell nameHier ntt_psi } {
   connect_bd_net [get_bd_pins sregif_clk] [get_bd_pins axi_noc_cips/[lindex $sregif_clock_pins_l 0]]
 
   connect_bd_intf_net -intf_net axi_noc_cips_mgmt [get_bd_intf_pins axi_noc_cips/[lindex $pcie_mgmt_noc_pins_l 0]] [get_bd_intf_pins s_axi_pcie_mgmt_slr0]
+  connect_bd_intf_net -intf_net axi_noc_tandem_loopback [get_bd_intf_pins axi_noc_cips/[lindex $pcie_mgmt_noc_pins_l 1]] [get_bd_intf_pins s_axi_tandem_loopback]
 
   for {set i 0}  {$i < $REGIF_NB} {incr i} {
     for {set j 0}  {$j < $REGIF_CLK_NB} {incr j} {
@@ -806,16 +817,16 @@ proc create_hier_cell_noc_wrapper { parentCell nameHier ntt_psi } {
   set_property CONFIG.PHYSICAL_LOC NOC_NMU512_X2Y1  [get_bd_intf_pins axi_noc_cips/S04_AXI]
   if { $ntt_psi == 64 } {
     # 2 are used in SLR0, and 2 in SLR2
-    set_property CONFIG.PHYSICAL_LOC NOC_NSU512_X2Y1 [get_bd_intf_pins axi_noc_cips/M03_AXI]
-    set_property CONFIG.PHYSICAL_LOC NOC_NSU512_X2Y2 [get_bd_intf_pins axi_noc_cips/M04_AXI]
-    set_property CONFIG.PHYSICAL_LOC NOC_NSU512_X2Y16 [get_bd_intf_pins axi_noc_cips/M01_AXI]
-    set_property CONFIG.PHYSICAL_LOC NOC_NSU512_X2Y13 [get_bd_intf_pins axi_noc_cips/M02_AXI]
+    set_property CONFIG.PHYSICAL_LOC NOC_NSU512_X2Y1 [get_bd_intf_pins axi_noc_cips/M04_AXI]
+    set_property CONFIG.PHYSICAL_LOC NOC_NSU512_X2Y2 [get_bd_intf_pins axi_noc_cips/M05_AXI]
+    set_property CONFIG.PHYSICAL_LOC NOC_NSU512_X2Y16 [get_bd_intf_pins axi_noc_cips/M02_AXI]
+    set_property CONFIG.PHYSICAL_LOC NOC_NSU512_X2Y13 [get_bd_intf_pins axi_noc_cips/M03_AXI]
   } elseif { $ntt_psi == 32 } {
     # 2 are used in SLR1, and 2 in SLR2
-    set_property CONFIG.PHYSICAL_LOC NOC_NSU512_X2Y8 [get_bd_intf_pins axi_noc_cips/M03_AXI]
-    set_property CONFIG.PHYSICAL_LOC NOC_NSU512_X2Y9 [get_bd_intf_pins axi_noc_cips/M04_AXI]
-    set_property CONFIG.PHYSICAL_LOC NOC_NSU512_X2Y16 [get_bd_intf_pins axi_noc_cips/M01_AXI]
-    set_property CONFIG.PHYSICAL_LOC NOC_NSU512_X2Y13 [get_bd_intf_pins axi_noc_cips/M02_AXI]
+    set_property CONFIG.PHYSICAL_LOC NOC_NSU512_X2Y8 [get_bd_intf_pins axi_noc_cips/M04_AXI]
+    set_property CONFIG.PHYSICAL_LOC NOC_NSU512_X2Y9 [get_bd_intf_pins axi_noc_cips/M05_AXI]
+    set_property CONFIG.PHYSICAL_LOC NOC_NSU512_X2Y16 [get_bd_intf_pins axi_noc_cips/M02_AXI]
+    set_property CONFIG.PHYSICAL_LOC NOC_NSU512_X2Y13 [get_bd_intf_pins axi_noc_cips/M03_AXI]
   # means psi = 16 or under
   } else {
     # All 4 are used in SLR1
@@ -825,7 +836,7 @@ proc create_hier_cell_noc_wrapper { parentCell nameHier ntt_psi } {
   # MGMT (to UUID, GCQ...)
   set_property CONFIG.PHYSICAL_LOC NOC_NSU512_X2Y0 [get_bd_intf_pins axi_noc_cips/M00_AXI]
 
-  #  # AXIS
+  #  AXIS
   if { $ntt_psi == 64 } {
     set_property CONFIG.PHYSICAL_LOC NOC_NMU512_X0Y0  [get_bd_intf_pins axis_noc/S00_AXIS]
     set_property CONFIG.PHYSICAL_LOC NOC_NSU512_X1Y0  [get_bd_intf_pins axis_noc/M01_AXIS]

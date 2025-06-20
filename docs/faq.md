@@ -88,18 +88,21 @@ con
 In order to run card diagnostics, you must install [xbtest](https://xilinx.github.io/AVED/amd_v80_gen5x8_exdes_2_20240408/xbtest/user-guide/source/docs/introduction/installation.html) and have an example AVED bitstream loaded into FPGA.
 
 > [!TIP]
-> Depending on your AVED bitstream version, you should checkout original AVED repository, git tag ```7497599``` for version 2.3 and ```b580f84``` for 2.2.
+> You should checkout our [AVED xbtest](https://github.com/zama-ai/AVED.git) branch if you use 'amd_v80_gen5x8_23.2_exdes_2_xbtest_stress_20240409.zip' package.
 
 Once done, compile the driver and load the ami module.
 
 ```
-git clone git@github.com:Xilinx/AVED.git
+git clone https://github.com/zama-ai/AVED.git
 cd AVED
-git checkout b580f84 #AMC version 2.2
+git checkout xbtest # for version 20240409
 cd sw/AMI/driver/
 make clean && make
 sudo modprobe -r ami && sudo insmod ami.ko
 ```
+
+> [!WARNING]
+> You must have booted the FPGA with an original AVED bitstream for running xbtest.
 
 If you want to launch memory diagnostics you can do :
 ```

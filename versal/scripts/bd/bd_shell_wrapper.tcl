@@ -73,6 +73,8 @@ proc create_hier_cell_shell_wrapper { parentCell nameHier } {
   set cpm_pcie_noc_axi0_clk [create_bd_pin -dir O -type clk cpm_pcie_noc_axi0_clk]
   set cpm_pcie_noc_axi1_clk [create_bd_pin -dir O -type clk cpm_pcie_noc_axi1_clk]
 
+  set pmc_tandem_clk [create_bd_pin -dir O -type clk pmc_tandem_clk]
+
   set pmc_noc_axi_0 [ create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 pmc_noc_axi_0 ]
   set pmc_axi_noc_axi0_clk [create_bd_pin -dir O -type clk pmc_axi_noc_axi0_clk]
 
@@ -80,6 +82,7 @@ proc create_hier_cell_shell_wrapper { parentCell nameHier } {
   set lpd_axi_noc_clk [create_bd_pin -dir O -type clk lpd_axi_noc_clk]
 
   set s_axi_pcie_mgmt_slr0 [ create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 s_axi_pcie_mgmt_slr0 ]
+  set s_noc_pcm_tandem [ create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 s_noc_pcm_tandem ]
 
   ####################################
   # Create CIPS
@@ -88,13 +91,10 @@ proc create_hier_cell_shell_wrapper { parentCell nameHier } {
 
   set cips_cpm_config [list \
       CPM_PCIE0_MODES {None} \
+      CPM_PCIE0_TANDEM {Tandem_PCIe} \
       CPM_PCIE1_ACS_CAP_ON {0} \
-      CPM_PCIE1_ARI_CAP_ENABLED {1} \
-      CPM_PCIE1_CFG_EXT_IF {1} \
       CPM_PCIE1_CFG_VEND_ID {10ee} \
       CPM_PCIE1_COPY_PF0_QDMA_ENABLED {0} \
-      CPM_PCIE1_EXT_PCIE_CFG_SPACE_ENABLED {Extended_Large} \
-      CPM_PCIE1_FUNCTIONAL_MODE {QDMA} \
       CPM_PCIE1_MAX_LINK_SPEED {32.0_GT/s} \
       CPM_PCIE1_MODES {DMA} \
       CPM_PCIE1_MODE_SELECTION {Advanced} \
@@ -112,38 +112,36 @@ proc create_hier_cell_shell_wrapper { parentCell nameHier } {
       CPM_PCIE1_PF0_AXIBAR2PCIE_HIGHADDR_4 {0x000000813FFFFFFFF} \
       CPM_PCIE1_PF0_AXIBAR2PCIE_HIGHADDR_5 {0x000000817FFFFFFFF} \
       CPM_PCIE1_PF0_BAR0_QDMA_64BIT {1} \
+      CPM_PCIE1_PF0_BAR0_QDMA_AXCACHE {0} \
       CPM_PCIE1_PF0_BAR0_QDMA_ENABLED {1} \
       CPM_PCIE1_PF0_BAR0_QDMA_PREFETCHABLE {1} \
       CPM_PCIE1_PF0_BAR0_QDMA_SCALE {Megabytes} \
       CPM_PCIE1_PF0_BAR0_QDMA_SIZE {256} \
       CPM_PCIE1_PF0_BAR0_QDMA_TYPE {AXI_Bridge_Master} \
-      CPM_PCIE1_PF0_BAR2_QDMA_64BIT {0} \
-      CPM_PCIE1_PF0_BAR2_QDMA_ENABLED {0} \
-      CPM_PCIE1_PF0_BAR2_QDMA_PREFETCHABLE {0} \
-      CPM_PCIE1_PF0_BAR2_QDMA_SCALE {Kilobytes} \
-      CPM_PCIE1_PF0_BAR2_QDMA_SIZE {4} \
-      CPM_PCIE1_PF0_BAR2_QDMA_TYPE {AXI_Bridge_Master} \
+      CPM_PCIE1_PF0_BAR1_QDMA_AXCACHE {0} \
+      CPM_PCIE1_PF0_BAR2_QDMA_AXCACHE {0} \
+      CPM_PCIE1_PF0_BAR3_QDMA_AXCACHE {0} \
+      CPM_PCIE1_PF0_BAR4_QDMA_AXCACHE {0} \
+      CPM_PCIE1_PF0_BAR5_QDMA_AXCACHE {0} \
       CPM_PCIE1_PF0_BASE_CLASS_VALUE {12} \
       CPM_PCIE1_PF0_CFG_DEV_ID {50b4} \
       CPM_PCIE1_PF0_CFG_SUBSYS_ID {000e} \
-      CPM_PCIE1_PF0_DEV_CAP_FUNCTION_LEVEL_RESET_CAPABLE {0} \
+      CPM_PCIE1_PF0_DEV_CAP_FUNCTION_LEVEL_RESET_CAPABLE {1} \
       CPM_PCIE1_PF0_MSIX_CAP_TABLE_OFFSET {40} \
       CPM_PCIE1_PF0_MSIX_CAP_TABLE_SIZE {1} \
       CPM_PCIE1_PF0_MSIX_ENABLED {0} \
       CPM_PCIE1_PF0_PCIEBAR2AXIBAR_QDMA_0 {0x0000020100000000} \
       CPM_PCIE1_PF0_SUB_CLASS_VALUE {00} \
       CPM_PCIE1_PF1_BAR0_QDMA_64BIT {1} \
-      CPM_PCIE1_PF1_BAR0_QDMA_ENABLED {1} \
+      CPM_PCIE1_PF1_BAR0_QDMA_AXCACHE {0} \
       CPM_PCIE1_PF1_BAR0_QDMA_PREFETCHABLE {1} \
-      CPM_PCIE1_PF1_BAR0_QDMA_SCALE {Kilobytes} \
       CPM_PCIE1_PF1_BAR0_QDMA_SIZE {512} \
       CPM_PCIE1_PF1_BAR0_QDMA_TYPE {DMA} \
-      CPM_PCIE1_PF1_BAR2_QDMA_64BIT {0} \
-      CPM_PCIE1_PF1_BAR2_QDMA_ENABLED {0} \
-      CPM_PCIE1_PF1_BAR2_QDMA_PREFETCHABLE {0} \
-      CPM_PCIE1_PF1_BAR2_QDMA_SCALE {Kilobytes} \
-      CPM_PCIE1_PF1_BAR2_QDMA_SIZE {4} \
-      CPM_PCIE1_PF1_BAR2_QDMA_TYPE {AXI_Bridge_Master} \
+      CPM_PCIE1_PF1_BAR1_QDMA_AXCACHE {0} \
+      CPM_PCIE1_PF1_BAR2_QDMA_AXCACHE {0} \
+      CPM_PCIE1_PF1_BAR3_QDMA_AXCACHE {0} \
+      CPM_PCIE1_PF1_BAR4_QDMA_AXCACHE {0} \
+      CPM_PCIE1_PF1_BAR5_QDMA_AXCACHE {0} \
       CPM_PCIE1_PF1_BASE_CLASS_VALUE {12} \
       CPM_PCIE1_PF1_CFG_DEV_ID {50b5} \
       CPM_PCIE1_PF1_CFG_SUBSYS_ID {000e} \
@@ -151,9 +149,9 @@ proc create_hier_cell_shell_wrapper { parentCell nameHier } {
       CPM_PCIE1_PF1_MSIX_CAP_TABLE_OFFSET {50000} \
       CPM_PCIE1_PF1_MSIX_CAP_TABLE_SIZE {8} \
       CPM_PCIE1_PF1_MSIX_ENABLED {1} \
-      CPM_PCIE1_PF1_PCIEBAR2AXIBAR_QDMA_2 {0x0000020200000000} \
       CPM_PCIE1_PF1_SUB_CLASS_VALUE {00} \
       CPM_PCIE1_PL_LINK_CAP_MAX_LINK_WIDTH {X8} \
+      CPM_PCIE1_TANDEM {Tandem_PCIe} \
       CPM_PCIE1_TL_PF_ENABLE_REG {2} \
     ]
 
@@ -314,6 +312,14 @@ proc create_hier_cell_shell_wrapper { parentCell nameHier } {
     CONFIG.PS_PMC_CONFIG_APPLIED {1} \
   ] $cips
 
+  # force tandem flag post CIPS configuration: without this snippet, 80% of synthesis won't have tandem
+  set_property -dict [list \
+    CONFIG.CPM_CONFIG { \
+      CPM_PCIE0_TANDEM {Tandem_PCIe} \
+      CPM_PCIE1_TANDEM {Tandem_PCIe} \
+    } \
+  ] $cips
+
   ####################################
   # Create Base Logic
   ####################################
@@ -339,7 +345,7 @@ proc create_hier_cell_shell_wrapper { parentCell nameHier } {
   ] $axi_to_axis
 
   ####################################
-  # Interrrupts
+  # Interrupts
   ####################################
   for { set i 0}  {$i < $IRQ_NB} {incr i} {
     set irq_id [expr $IRQ_START_ID + $i]
@@ -362,7 +368,6 @@ proc create_hier_cell_shell_wrapper { parentCell nameHier } {
   connect_bd_intf_net -intf_net base_logic_m_axi_pcie_mgmt_pdi_reset [get_bd_intf_pins base_logic/m_axi_pcie_mgmt_pdi_reset] [get_bd_intf_pins clock_reset/s_axi_pcie_mgmt_pdi_reset]
   connect_bd_intf_net -intf_net cips_M_AXI_LPD [get_bd_intf_pins cips/M_AXI_LPD] [get_bd_intf_pins base_logic/s_axi_rpu]
   connect_bd_intf_net -intf_net cips_PCIE1_GT [get_bd_intf_pins cips/PCIE1_GT] [get_bd_intf_pins gt_pciea1]
-  connect_bd_intf_net -intf_net cips_pcie1_cfg_ext [get_bd_intf_pins cips/pcie1_cfg_ext] [get_bd_intf_pins base_logic/pcie_cfg_ext]
   connect_bd_intf_net -intf_net gt_pcie_refclk_1 [get_bd_intf_pins gt_pcie_refclk] [get_bd_intf_pins cips/gt_refclk1]
 
   connect_bd_net -net clock_reset_clk_usr_0 [get_bd_pins clock_reset/clk_usr_0] [get_bd_pins clk_usr_0_0]
@@ -375,13 +380,13 @@ proc create_hier_cell_shell_wrapper { parentCell nameHier } {
   connect_bd_net -net cips_pl0_ref_clk [get_bd_pins cips/pl0_ref_clk] [get_bd_pins pl0_ref_clk_0] [get_bd_pins cips/m_axi_lpd_aclk] [get_bd_pins base_logic/clk_pl] [get_bd_pins clock_reset/clk_pl]
   connect_bd_net -net cips_pl0_resetn  [get_bd_pins cips/pl0_resetn] [get_bd_pins pl0_resetn_0] [get_bd_pins clock_reset/resetn_pl_axi]
   connect_bd_net -net cips_pl1_ref_clk [get_bd_pins cips/pl1_ref_clk] [get_bd_pins clock_reset/clk_freerun]
-  connect_bd_net -net cips_pl2_ref_clk [get_bd_pins cips/pl2_ref_clk] [get_bd_pins cips/dma1_intrfc_clk] [get_bd_pins base_logic/clk_pcie] [get_bd_pins clock_reset/clk_pcie]
+  connect_bd_net -net cips_pl2_ref_clk [get_bd_pins cips/pl2_ref_clk] [get_bd_pins cips/dma1_intrfc_clk] [get_bd_pins clock_reset/clk_pcie]
+  connect_bd_net -net cips_pmc_tandem_clk [get_bd_pins cips/noc_pmc_axi_axi0_clk] [get_bd_pins pmc_tandem_clk]
 
   connect_bd_net -net clock_reset_clk_usr_0 [get_bd_pins clock_reset/clk_usr_0] [get_bd_pins axi_to_axis/s_axi_aclk] [get_bd_pins base_logic/hpu_clk]
   connect_bd_net -net clock_reset_resetn_usr_0_ic [get_bd_pins clock_reset/resetn_usr_0_ic] [get_bd_pins axi_to_axis/s_axi_aresetn]
 
   connect_bd_net -net clock_reset_resetn_pcie_ic [get_bd_pins clock_reset/resetn_pcie_ic] [get_bd_pins cips/dma1_intrfc_resetn]
-  connect_bd_net -net clock_reset_resetn_pcie_periph [get_bd_pins clock_reset/resetn_pcie_periph] [get_bd_pins base_logic/resetn_pcie_periph]
   connect_bd_net -net clock_reset_resetn_pl_ic [get_bd_pins clock_reset/resetn_pl_ic] [get_bd_pins base_logic/resetn_pl_ic]
   connect_bd_net -net clock_reset_resetn_pl_periph [get_bd_pins clock_reset/resetn_pl_periph] [get_bd_pins base_logic/resetn_pl_periph]
 
@@ -401,6 +406,7 @@ proc create_hier_cell_shell_wrapper { parentCell nameHier } {
   connect_bd_net -net lpd_axi_noc_clk       [get_bd_pins lpd_axi_noc_clk]       [get_bd_pins cips/lpd_axi_noc_clk]
 
   connect_bd_intf_net -intf_net s_axi_pcie_mgmt_slr0 [get_bd_intf_pins s_axi_pcie_mgmt_slr0] [get_bd_intf_pins base_logic/s_axi_pcie_mgmt_slr0]
+  connect_bd_intf_net -intf_net s_noc_pcm_tandem [get_bd_intf_pins cips/NOC_PMC_AXI_0] [get_bd_intf_pins s_noc_pcm_tandem]
 
   ####################################
   # Restore instance

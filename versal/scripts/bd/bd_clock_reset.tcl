@@ -136,7 +136,7 @@ proc create_hier_cell_clock_reset { parentCell nameHier } {
   set usr_clk_wiz [ create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wizard:1.0 usr_clk_wiz ]
 
   # Note that the clock frequencies are not round : this avoid us some warnings
-  #  > " requested frequency cannot be achived for value [...]"
+  #  > " requested frequency cannot be achieved for value [...]"
   set user_freq "${USER_0_FREQ},${USER_1_FREQ}"
   set_property -dict [list \
     CONFIG.CLKOUT_DRIVES {No_buffer,No_buffer} \
@@ -190,4 +190,3 @@ proc create_hier_cell_clock_reset { parentCell nameHier } {
   # Restore current instance
   current_bd_instance $oldCurInst
 }
-

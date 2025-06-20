@@ -19,7 +19,7 @@ source ${BD_SCRIPTS_DIR}/bd_main.tcl
 ################################################################
 # Check if script is running in correct Vivado version.
 ################################################################
-check_version 2024.1
+check_version 2024.2
 
 ################################################################
 # Global variables
@@ -190,8 +190,10 @@ namespace eval _nsp_hpu {
     variable CT_HBM_PORTS_L [list]
     variable GLWE_HBM_PORTS_L [list]
 
-    # do not touch
-    variable AXI_PCIE_NB 1
+    # /!\ do not touch
+    # - one is for communication to gcq, uuid and reset
+    # - other one is for the tandem loopback in order to reprogram FPGA
+    variable AXI_PCIE_NB 2
 
     # Regfile
     variable LPD_AXI_NB 1

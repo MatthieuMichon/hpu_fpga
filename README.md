@@ -141,8 +141,9 @@ To use the HPU FPGA project, ensure the following tools and dependencies are ins
     - *(simulation only)* `constrainedrandom`
 
 > [!CAUTION]
-> Linux with kernel version 5.15.0-* is required to compile the host software. (See [Ami driver](https://github.com/zama-ai/AVED)).
-
+> **Ubuntu with kernel 5.15.0-139-generic** or **Almalinux kernel 5.14-*.** is required to compile the host software. (See [Ami driver](https://github.com/zama-ai/AVED)). \
+> We found issues concerning FPGA programmation with some of Ubuntu's patches. The last patch, dated May 5 2025, is fully stable. \
+> If ever you are open to change your distribution, we recommend using Almalinux.
 
 #### Python dependencies
 > [!TIP]
@@ -289,13 +290,13 @@ ${PROJECT_DIR}/fw/ublaze/script/generate_core.sh
 >
 > We assume that the user has already used a V80 board and knows its basic usage.<br>
 > We assume that the [flash](https://xilinx.github.io/AVED/latest/AVED%2BUpdating%2BFPT%2BImage%2Bin%2BFlash.html) has already been correctly programmed and the example design [is in partition 0](https://xilinx.github.io/AVED/latest/AVED%2BUpdating%2BDesign%2BPDI%2Bin%2BFlash.html)<br>
-> We recommend to use partition 1 for your freshly generated pdi. This will enable you to fallback on partition 0 after a reboot.
+> We recommend to use partition 1 for your freshly generated pdi targeting the flash. This will enable you to fallback on partition 0 after a reboot.
 
 > [!WARNING]
 >
 > Note that we witnessed the following behavior: server reboot after loading of the V80 FPGA from OSPI. The PCIe device disappeared during the boot.<br>
 > If your machine **doesn't allow hot plug, your machine will reboot**.<br>
-> In this specific scenario, we suggest to program partition 0 in order to reboot your machine with the new pdi.<br>
+> In this specific scenario, we suggest to program partition 0 in order to reboot your machine with the new pdi or program using tandem PCIe.<br>
 >
 > In the case you corrupt the flash inadvertently, plug USB/JTAG and reprogram it.<br>
 > Use script ```cd versal && just rewrite_flash ``` or follow [AMD tutorial](https://xilinx.github.io/AVED/latest/AVED%2BUpdating%2BFPT%2BImage%2Bin%2BFlash.html).
@@ -306,7 +307,12 @@ To control the board and use ```TFHE-rs' tfhe-hpu-backend```, install both AMI (
 ### AMI driver
 The AMI software, adapted for HPU, is available in a [git fork](https://github.com/zama-ai/AVED) from XILINX AVED example design.
 
-AMI driver compilation requires usage of a specific Linux kernel version (5.15.0-*), Linux kernel sources and DKMS.
+> [!WARNING]
+> If you insert ami module of the original AVED branche with one of our bitstream loaded and your machine doesn't support hot plug, you will crash.\
+> We tweaked the design and removed a block that is mandatory for original AVED driver.\
+> Without this module, AVED is issuing a PCIE read to a missing module. This is not the case in our fork.
+
+AMI driver compilation requires usage of a specific Linux kernel version (ubuntu 5.15.0-* ) (Almalinux 5.14.0-* ), Linux kernel sources and DKMS.
 
 
 #### Driver installation
@@ -365,16 +371,20 @@ sudo make install-mods
 ### FPGA loading
 
 #### Loading through OSPI flash
-Here we use 2 files resulting from `run_syn_hpu_3parts_psi64.sh` bitstream generation, in directory ${PROJECT_DIR}/versal/output_psi64: `top_hpu.pdi` and `hpu_plug.xsa`.
+There are two file types resulting from `run_syn_hpu_3parts_psi64.sh` bitstream generation, in directory `${PROJECT_DIR}/versal/output_psi64`: bitstream `*.pdi` and shell archive `hpu_plug.xsa`.\
+Note that if you use another given script (for another HPU size), the output directory will be `${PROJECT_DIR}/versal/output_psi<size\>`.
 
-Note that if you use another given script (for another HPU size), the output directory will be ${PROJECT_DIR}/versal/output_psi<size\>.
+You might have noticed that two pdi are created after fpga compilation. In order to program them directly into OSPI, the first step is to merge the two pdi together.
 
-First associate a pre-compiled elf for the ARM processor into the pdi.
 ```
 # We assume that hpu_fpga project has already been set-up.
 # Return to hpu_fpga directory.
 cd ${PROJECT_DIR}/versal
+just merge_pdi top_hpu
+```
 
+Then you can associate a pre-compiled elf for the ARM processor into the pdi.
+```
 # Compile elf
 just --set OUTDIR $PWD/output_psi64 compile_fw
 
@@ -396,6 +406,27 @@ You can also load the bitstream provided in `versal/bitstreams/` directory:
 ```
 sudo -E ami_tool cfgmem_program -d $DEVICE -t primary -i ${PROJECT_DIR}/versal/bitstreams/top_hpu_psi64_350_tuniform.00000b715273035020521e2505071329.pdi -p 1
 ```
+
+### Programmation through PCIE
+In certain systems, the PCIe device is required to boot within 120 ms. To achieve this, we are employing tandem configuration done in 2 stages. Stage 1 programming allows immediate PCIe enumeration. Stage 2 includes FPGA logic and ARM firmware.
+
+Stage 1 requires the V80 board to be connected through JTAG, while Stage 2 requires connection via PCIe. By default we suppose JTAG and PCIe are connected to the same machine.
+If ever it's not the case, optional arguments to the "program" justfile recipe are available to program only a given stage: `program top_hpu stage1` or `program top_hpu stage2`.
+
+Same as for OSPI programmation, an elf must be associated with the pdi. Here, merge elf to ```*_tandem2```.
+
+```
+just merge_elf top_hpu_tandem2
+```
+
+Once merged you will be able to program the two pdis.
+
+```
+just program top_hpu
+```
+
+> [!WARNING]
+> Note: if booting from OSPI is required after programming with Tandem, please run ```xsdb versal/scripts/jtag/write_ospi_mode.tcl``` beforehand.
 
 *Now, you can run TFHE-rs code with the HPU you just loaded! In order to do so, have a look at [this document](https://docs.zama.ai/tfhe-rs/configuration/run_on_hpu) in order to find the next commands!*
 

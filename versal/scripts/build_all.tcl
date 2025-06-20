@@ -270,8 +270,8 @@ proc implementation { ntt_psi } {
 
   common::send_msg_id {BUILD_HW-8} {INFO} {Done!}
 
-  file copy -force $OUTDIR/${TOP_NAME}/prj.runs/impl_1/${TOP_NAME}.bif $OUTDIR/
-  file copy -force $OUTDIR/${TOP_NAME}/prj.runs/impl_1/${TOP_NAME}.pdi $OUTDIR/
+  file copy -force $OUTDIR/${TOP_NAME}/prj.runs/impl_1/${TOP_NAME}_tandem1.pdi $OUTDIR/
+  file copy -force $OUTDIR/${TOP_NAME}/prj.runs/impl_1/${TOP_NAME}_tandem2.pdi $OUTDIR/
 
 }
 
@@ -307,7 +307,14 @@ proc main { } {
 
   if {$STEP eq "new"} {
     import_all
+    # create_shell.tcl needs arguments that are passed with argc and argv.
+    set argv $::argv
+    set argc $::argc
+    set ::argv [list $ntt_psi]
+    set ::argc 1
     source "$PROJECT_DIR/versal/scripts/create_shell.tcl"
+    set ::argv $argv
+    set ::argc $argc
     write_hw_platform -force -fixed -minimal "$OUTDIR/${SHELL_VER}.xsa"
     synthesis
     implementation $ntt_psi

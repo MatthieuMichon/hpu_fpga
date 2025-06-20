@@ -32,3 +32,4 @@ xrt/kernel/*/xml/*.xml
 verdiLog/
 novas*
 log*
+*.str

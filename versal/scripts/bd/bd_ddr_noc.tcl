@@ -4,7 +4,7 @@
 # ==============================================================================================
 
 ################################################################
-# create_hier_cell_shell_wrapper
+# create_hier_cell_ddr_noc
 ################################################################
 # Hierarchical cell: shell_wrapper
 proc create_hier_cell_ddr_noc { parentCell nameHier } {
@@ -150,4 +150,3 @@ proc create_hier_cell_ddr_noc { parentCell nameHier } {
   # Restore current instance
   current_bd_instance $oldCurInst
 }
-

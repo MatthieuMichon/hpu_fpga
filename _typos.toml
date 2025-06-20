@@ -1,12 +1,15 @@
 [default]
 extend-ignore-identifiers-re = [
     # EDA and other common name
-    "Synopsys", "vcs", "xsim",
-
+    "Synopsys",
+    "vcs",
+    "xsim",
     # V80 Ip name and accronym
-    "(CIPS|cips)", "(fpt|Fpt|FPT)",
+    "(CIPS|cips)",
+    "(fpt|Fpt|FPT)",
     # Commonly used Rtl naming
-    "interm", "(dout|DOUT|Dout)",
+    "interm",
+    "(dout|DOUT|Dout)",
     "(Pnr|PnR|PNR)",
     "(DELTA|delta)",
     "2nd",
@@ -25,6 +28,7 @@ extend-ignore-re = [
 extend-exclude = [
     "*.mem",
     "*.ld",
+    "*.str",
     "hw/module/hpu/module/hpu_regif/docs",
     "fw/arm/src/device_drivers",
     "fw/arm/src/apps",
@@ -34,6 +38,5 @@ extend-exclude = [
     "fw/arm/src/fal",
     "fw/arm/src/osal",
     "versal/iprepo",
-    "versal/scripts/bd",
     "edalize",
 ]
