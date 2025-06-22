@@ -118,8 +118,8 @@ module pep_ks_result_format
   logic                                    s0_result_vld;
   logic                                    s0_result_rdy;
 
-  coef_t [LWE_COEF_W-1:0]                  lwe_a;
-  coef_t [LWE_COEF_W-1:0]                  lwe_aD;
+  coef_t [BATCH_PBS_NB-1:0]                lwe_a;
+  coef_t [BATCH_PBS_NB-1:0]                lwe_aD;
 
   //== keep track of the ks_loop
   logic [KS_BLOCK_COL_W-1:0]               s0_ks_loop;
