@@ -56,8 +56,7 @@ def cstr_ksk_w (lbz, ksk_w):
 
 def cstr_ks (ks_l, lbx, lby, lbz, r, s, glwe_k, ksk_w, ntt_w, batch_pbs_nb):
     """
-    Check that there is enough time to empty the KS output pipe and the keyswitch modulus size fits
-    the software constraints
+    Check that there is enough time to empty the KS output pipe
     """
     q_w                   = ntt_w
     ks_lg_nb              = (ks_l + lbz-1) // lbz;
@@ -87,8 +86,7 @@ def cstr_ks (ks_l, lbx, lby, lbz, r, s, glwe_k, ksk_w, ntt_w, batch_pbs_nb):
             (column_proc_cycle_min >= read_pipe_cycle_max)
             and (blwe_subw_nb*blwe_subw_coef_nb == lby)
             and  ((lby <= ksk_coef_per_axi4_word) or ((lby // ksk_coef_per_axi4_word)*ksk_coef_per_axi4_word == lby))
-            and  ((lby >= ksk_coef_per_axi4_word) or (ksk_coef_per_axi4_word//lby)*lby == ksk_coef_per_axi4_word )
-            and ksk_w <= 32)
+            and  ((lby >= ksk_coef_per_axi4_word) or (ksk_coef_per_axi4_word//lby)*lby == ksk_coef_per_axi4_word ))
 
 def cstr_regf_seq (regf_seq, regf_coef):
     """
@@ -206,7 +204,7 @@ if __name__ == '__main__':
     r1.add_rand_var("NTT_ARCH"      , domain=set_list(args.ntt_arch,['NTT_CORE_ARCH_wmm_unfold_pcg','NTT_CORE_ARCH_gf64']), order=0)
     r1.add_rand_var("MOD_NTT_W"     , domain=range(set_val(args.mod_ntt_w,32),set_val(args.mod_ntt_w,64)+1), order=0)
     r1.add_rand_var("GLWE_K"        , domain=range(set_val(args.glwe_k,1),set_val(args.glwe_k,3)+1), order=1)
-    r1.add_rand_var("MOD_KSK_W"     , domain=range(set_val(args.mod_ksk_w,16),set_val(args.mod_ksk_w,64)+1), order=1)
+    r1.add_rand_var("MOD_KSK_W"     , domain=range(set_val(args.mod_ksk_w,16),set_val(args.mod_ksk_w,32)+1), order=1)
     r1.add_rand_var("BATCH_PBS_NB"  , fn=rand_mult_by, args=(4,4,32), order=1)
     r1.add_rand_var("TOTAL_PBS_NB"  , fn=rand_mult_by, args=(4,8,64), order=1)
     r1.add_rand_var("PBS_L"         , domain=range(1,3+1), order=1)
@@ -235,7 +233,7 @@ if __name__ == '__main__':
     r1.add_constraint(cstr_batch,('BATCH_PBS_NB','TOTAL_PBS_NB'))
     r1.add_constraint(cstr_pbs_level_div, ('BWD_PSI_DIV', 'PBS_L', 'NTT_ARCH', 'PSI'))
     r1.add_constraint(cstr_level, ('PBS_B_W','PBS_L','MOD_NTT_W'))
-    r1.add_constraint(cstr_level, ('KS_B_W','KS_L','MOD_KSK_W'))
+    r1.add_constraint(cstr_level, ('KS_B_W','KS_L','MOD_NTT_W'))
     r1.add_constraint(cstr_ks, ('KS_L', 'LBX', 'LBY', 'LBZ', 'R', 'S', 'GLWE_K', 'MOD_KSK_W', 'MOD_NTT_W','BATCH_PBS_NB'))
     r1.add_constraint(cstr_ksk_w, ('LBZ', 'MOD_KSK_W'))
     r1.add_constraint(cstr_regf_seq, ('REGF_SEQ', 'REGF_COEF_NB'))
