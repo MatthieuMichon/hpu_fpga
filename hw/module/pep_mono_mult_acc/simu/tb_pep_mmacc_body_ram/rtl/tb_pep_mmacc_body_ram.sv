@@ -429,10 +429,8 @@ module tb_pep_mmacc_body_ram;
       if (boram_sxt_data_vld && boram_sxt_data_rdy) begin
         pid_t         ref_pid;
         modsw_coeff_t ref_lwe;
-        modsw_coeff_t prev_lwe;
 
         ref_pid  = rd_add_q.pop_front();
-        prev_lwe = mod_switch(real'(prev_ks_lwe_a[ref_pid]) - real'(prev_corr_acc[ref_pid]) * KS_KEY_MEAN_R);
         ref_lwe  = mod_switch(real'(ks_lwe_a[ref_pid]) - real'(seq_corr_acc[ref_pid]) * KS_KEY_MEAN_R);
 
         // Not using assert because it causes lint warnings about side effects
@@ -440,12 +438,6 @@ module tb_pep_mmacc_body_ram;
           $display("%t > ERROR: Data mismatch pid=%0d exp=0x%0x seen=0x%0x",$time,ref_pid,ref_lwe,boram_sxt_data);
           error_data <= 1'b1;
         end
-
-        // This check has a chance to not pass randomly with correct behavior
-        //if(prev_lwe === boram_sxt_data) begin
-        //  $display("%t > ERROR: Data match previous value pid=%0d exp=0x%0x seen=0x%0x",$time,ref_pid,prev_lwe,boram_sxt_data);
-        //  error_data <= 1'b1;
-        //end
 
         rd_done     <= 1'b1;
         rd_done_pid <= ref_pid;
