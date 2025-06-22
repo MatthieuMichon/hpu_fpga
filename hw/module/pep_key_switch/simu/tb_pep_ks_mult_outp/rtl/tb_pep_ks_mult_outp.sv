@@ -373,7 +373,6 @@ module tb_pep_ks_mult_outp;
   logic [LBY-1:0]                      sr_ctrl_mult_eoy;
   logic [LBY-1:0]                      sr_ctrl_mult_last_iter;
   logic [LBY-1:0][TOTAL_BATCH_NB_W-1:0]sr_ctrl_mult_batch_id;
-  logic [LBY-1:0][PID_W-1:0]           sr_ctrl_mult_pid;
 
   logic [LBY-1:0][LBZ-1:0][KS_B_W-1:0] sr_ctrl_mult_dataD;
   logic [LBY-1:0][LBZ-1:0]             sr_ctrl_mult_signD;
@@ -383,7 +382,6 @@ module tb_pep_ks_mult_outp;
   logic [LBY-1:0]                      sr_ctrl_mult_eoyD;
   logic [LBY-1:0]                      sr_ctrl_mult_last_iterD;
   logic [LBY-1:0][TOTAL_BATCH_NB_W-1:0]sr_ctrl_mult_batch_idD;
-  logic [LBY-1:0][PID_W-1:0]           sr_ctrl_mult_pidD;
 
   assign sr_ctrl_mult_dataD      = {sr_ctrl_mult_data[LBY-2:0],in_data_0};
   assign sr_ctrl_mult_signD      = {sr_ctrl_mult_sign[LBY-2:0],in_sign_0};
@@ -392,7 +390,6 @@ module tb_pep_ks_mult_outp;
   assign sr_ctrl_mult_eoyD       = {sr_ctrl_mult_eoy[LBY-2:0],in_eoy_0};
   assign sr_ctrl_mult_last_iterD = {sr_ctrl_mult_last_iter[LBY-2:0],in_last_iter_0};
   assign sr_ctrl_mult_batch_idD  = {sr_ctrl_mult_batch_id[LBY-2:0],in_run_batch_id[TOTAL_BATCH_NB_W-1:0]};
-  assign sr_ctrl_mult_pidD       = {sr_ctrl_mult_pid[LBY-2:0],in_run_pbs_nb[PID_W-1:0]};
 
   always_ff @(posedge clk)
     if (!s_rst_n) sr_ctrl_mult_avail <= '0;
@@ -405,7 +402,6 @@ module tb_pep_ks_mult_outp;
     sr_ctrl_mult_eoy       <= sr_ctrl_mult_eoyD;
     sr_ctrl_mult_last_iter <= sr_ctrl_mult_last_iterD;
     sr_ctrl_mult_batch_id  <= sr_ctrl_mult_batch_idD;
-    sr_ctrl_mult_pid       <= sr_ctrl_mult_pidD;
   end
 
   assign ctrl_mult_data           = sr_ctrl_mult_data;
