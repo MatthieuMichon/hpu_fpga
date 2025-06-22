@@ -1420,7 +1420,7 @@ module pep_sequencer
       t0_upd_pool_corr[i] = t0_upd_pool_corr_tmp[idx];
     end
 
-  assign t1_upd_pool_lwe_mhD  = t0_upd_mask & {TOTAL_PBS_NB{t0_do_upd_lwe}};
+  assign t1_upd_pool_lwe_mhD = t0_upd_mask & {TOTAL_PBS_NB{t0_do_upd_lwe}};
 
   //== Step 1
   // Update ks_out pointers
@@ -1690,7 +1690,8 @@ module pep_sequencer
   logic      [CORR_BUF_DEPTH:0]                        corr_buffer_avail_ext;
   corr_elt_t [CORR_BUF_DEPTH:0][RANK_NB*GRAM_NB-1:0]   corr_buffer_ext;
 
-  assign corr_buffer_avail_ext = {pbs_send_st_wrap, corr_buffer_avail};
+  // Do not send correction when processing flush
+  assign corr_buffer_avail_ext = {pbs_send_st_wrap & ~pbs_in_cmd_flush, corr_buffer_avail};
   assign corr_buffer_ext       = {r1_corr_map, corr_buffer};
   assign corr_buffer_do_shift_ext = {corr_buffer_do_shift,corr_sr_do_sample};
 
