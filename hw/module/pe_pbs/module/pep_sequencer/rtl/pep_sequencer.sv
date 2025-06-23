@@ -363,21 +363,31 @@ module pep_sequencer
   logic [RANK_W-1:0]     pbs_in_rp_rank_ofs;
 
   logic                  loop_full; // Necessary in simulation to avoid wrapping, because LWE_K is too small.
+  logic                  loop_full_tmp;
   logic [LWE_K_P1_W:0]   ks_in_loop_range_max;
+  // If KS has to process only the body, do not consider it as full.
+  logic                  ks_in_body_only;
 
+  assign ks_in_body_only      = ks_in_loop == LWE_K;
   assign ks_in_loop_range_max = ks_in_loop + LBX;
-  assign loop_full = ((pbs_in_loop < ks_in_loop_range_max)) & (ks_in_loop_c != pbs_in_loop_c);
+  assign loop_full_tmp        = ((pbs_in_loop < ks_in_loop_range_max)) & (ks_in_loop_c != pbs_in_loop_c);
+  assign loop_full            = ~ks_in_body_only & loop_full_tmp;
 
 // pragma translate_off
   logic _loop_full_dly;
+  logic _loop_full_tmp_dly;
   always_ff @(posedge clk)
     if (!s_rst_n) begin
-      _loop_full_dly <= 1'b0;
+      _loop_full_dly     <= 1'b0;
+      _loop_full_tmp_dly <= 1'b0;
     end
     else begin
-      _loop_full_dly <= loop_full;
+      _loop_full_dly     <= loop_full;
+      _loop_full_tmp_dly <= loop_full_tmp;
       if (loop_full && !_loop_full_dly)
         $display("%t > INFO: loop_full seen. Stops ks_in to avoid overflow for the simulation (ks_in_loop=%0d pbs_in_loop=%0d). (Note this won't occur in real because LWE_K is big enough.)", $time,ks_in_loop, pbs_in_loop);
+      if (loop_full_tmp && !_loop_full_tmp_dly && !loop_full)
+        $display("%t > INFO: loop_full seen. Processing body. No stop ks_in (ks_in_loop=%0d pbs_in_loop=%0d).", $time,ks_in_loop, pbs_in_loop);
     end
 // pragma translate_on
 
@@ -866,7 +876,7 @@ module pep_sequencer
   pointer_t              seq_ks_latest_in_wpD;
   pointer_t              seq_ks_latest_in_rpD;
   logic [LWE_K_P1_W-1:0] seq_ks_latest_max_in_loopD;
-  logic [LWE_K_P1_W-1:0]   seq_ks_latest_max_in_loopD_tmp;
+  logic [LWE_K_P1_W-1:0] seq_ks_latest_max_in_loopD_tmp;
 
   logic                  u1_cmd_body_only;
 
