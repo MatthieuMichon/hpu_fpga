@@ -800,7 +800,7 @@ if __name__ == '__main__':
                 elif (tool == "vcs"):
                     tool_options_d[tool]["vlogan_options"].append('-kdb')
                     tool_options_d[tool]["vhdlan_options"].append('-kdb')
-                    tool_options_d[tool]["vcs_options"].append("-kdb -debug_access+all")
+                    tool_options_d[tool]["vcs_options"].append("-kdb -debug_access")
                     tool_options_d[tool]["run_options"].append("-lca +fsdb+functions")
             elif (f == "lint"):
                 if tool == "vcs":
@@ -811,7 +811,7 @@ if __name__ == '__main__':
                 if (tool == "vcs"):
                     tool_options_d[tool]["vlogan_options"].append('')
                     tool_options_d[tool]["vhdlan_options"].append('')
-                    tool_options_d[tool]["vcs_options"].append("-debug_access+all")
+                    tool_options_d[tool]["vcs_options"].append("-debug_access")
                 else:
                     sys.exit(ERROR_PRINT + ' feature {:s} is supported only for VCS'.format(f) + RESET_COLOR)
 
@@ -941,12 +941,12 @@ if __name__ == '__main__':
 
     if (tool == "vcs"):
         if (args.gui):
-            tool_options_d[tool]["vcs_options"].append("-debug_access+all")
+            tool_options_d[tool]["vcs_options"].append("-debug_access")
             tool_options_d[tool]["run_options"]=['+ntb_random_seed={:d} -gui=dve'.format(args.seed)]
         elif (args.gui_verdi):
             tool_options_d[tool]["vlogan_options"].append('-kdb')
             tool_options_d[tool]["vhdlan_options"].append('-kdb')
-            tool_options_d[tool]["vcs_options"].append("-kdb -debug_access+all")
+            tool_options_d[tool]["vcs_options"].append("-kdb -debug_access")
             tool_options_d[tool]["run_options"]=['-lca +ntb_random_seed={:d} +fsdb+functions -gui=base'.format(args.seed)]
         elif (tool_options_d[tool]["wave"]):
             ucli_cmd = ['fsdbDumpfile wave.fsdb']
