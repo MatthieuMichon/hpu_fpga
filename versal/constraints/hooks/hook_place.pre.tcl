@@ -18,6 +18,12 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 ############################################################
+proc opt_add_to_pblock {pblock objs} {
+    if [expr [llength $objs] > 0] {
+        add_cells_to_pblock -quiet $pblock $objs
+    }
+}
+
 set cdir [pwd]
 puts "current directory: $cdir"
 source ${cdir}/../../uservars.tcl
@@ -69,18 +75,16 @@ add_cells_to_pblock [get_pblocks pblock_SLR2] [get_cells -hier -regexp .*/hpu_3p
 add_cells_to_pblock [get_pblocks pblock_SLR2] [get_cells -hier -regexp .*/fifo_element_isc_dop] -clear_locs
 add_cells_to_pblock [get_pblocks pblock_SLR2] [get_cells -hier -regexp .*/fifo_element_isc_ack] -clear_locs
 
-# Either assign SLR crossing registers to crossing PBLOCK or set the USER_SLL_REG property, not both
-add_cells_to_pblock -quiet [get_pblocks pblock_SLL1BOT] [get_cells -hier -regexp -filter {NAME =~ ".*gen_inter_part_pipe.in_p2_p3_ntt_proc_.*_dly.*"}]
-add_cells_to_pblock -quiet [get_pblocks pblock_SLL0TOP] [get_cells -hier -regexp -filter {NAME =~ ".*gen_inter_part_pipe.out_p2_p3_ntt_proc_.*"}]
-
-add_cells_to_pblock -quiet [get_pblocks pblock_SLL0TOP] [get_cells -hier -regexp -filter {NAME =~ ".*gen_inter_part_pipe.in_p3_p2_ntt_proc_.*_dly.*"}]
-add_cells_to_pblock -quiet [get_pblocks pblock_SLL1BOT] [get_cells -hier -regexp -filter {NAME =~ ".*gen_inter_part_pipe.out_p3_p2_ntt_proc_.*"}]
-
 add_cells_to_pblock -quiet [get_pblocks pblock_SLL2BOT] [get_cells -hier -regexp -filter {NAME =~ ".*/p1_p2_sll.*/in_pipe"}]
 add_cells_to_pblock -quiet [get_pblocks pblock_SLL2BOT] [get_cells -hier -regexp -filter {NAME =~ ".*/p2_p1_sll.*/out_pipe"}]
 
 add_cells_to_pblock -quiet [get_pblocks pblock_SLL1TOP] [get_cells -hier -regexp -filter {NAME =~ ".*/p1_p2_sll.*/out_pipe"}]
 add_cells_to_pblock -quiet [get_pblocks pblock_SLL1TOP] [get_cells -hier -regexp -filter {NAME =~ ".*/p2_p1_sll.*/in_pipe"}]
+
+opt_add_to_pblock [get_pblocks pblock_SLL1BOT] [get_cells -hier -regexp -filter {NAME =~ ".*gen_inter_part_pipe.in_p2_p3_ntt_proc_.*_dly.*"}]
+opt_add_to_pblock [get_pblocks pblock_SLL0TOP] [get_cells -hier -regexp -filter {NAME =~ ".*gen_inter_part_pipe.out_p2_p3_ntt_proc_.*"}]
+opt_add_to_pblock [get_pblocks pblock_SLL0TOP] [get_cells -hier -regexp -filter {NAME =~ ".*gen_inter_part_pipe.in_p3_p2_ntt_proc_.*_dly.*"}]
+opt_add_to_pblock [get_pblocks pblock_SLL1BOT] [get_cells -hier -regexp -filter {NAME =~ ".*gen_inter_part_pipe.out_p3_p2_ntt_proc_.*"}]
 
 # This is an alternate way of constraining the SLL flops. However, this one generates DRC errors.
 #set sll_regs [ \
