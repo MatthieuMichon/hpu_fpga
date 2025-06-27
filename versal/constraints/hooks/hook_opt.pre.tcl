@@ -28,20 +28,26 @@ create_pblock pblock_SLL1BOT
 create_pblock pblock_SLL0TOP
 create_pblock pblock_CLKROOT
 
-# The optimal location of the SLLs are within 75 slices from the SLR border
+# The location of the SLLs are within 75 slices from the SLR border
 # according to: Vivado Design Suite Properties Reference Guide (UG912, 2025-05-29, section USER_SLL_REG)
 
-resize_pblock pblock_SLL2BOT -add SLICE_X48Y620:SLICE_X379Y694
-resize_pblock pblock_SLL1TOP -add SLICE_X48Y619:SLICE_X379Y545
-resize_pblock pblock_SLL1BOT -add SLICE_X48Y332:SLICE_X379Y406
-resize_pblock pblock_SLL0TOP -add SLICE_X48Y331:SLICE_X379Y257
-resize_pblock pblock_CLKROOT -add CLOCKREGION_X6Y0
+if [expr $::ntt_psi < 64] {
+    resize_pblock pblock_SLL2BOT -add SLICE_X48Y620:SLICE_X379Y694
+    resize_pblock pblock_SLL1TOP -add SLICE_X48Y619:SLICE_X379Y545
+    resize_pblock pblock_SLL1BOT -add SLICE_X48Y332:SLICE_X379Y406
+    resize_pblock pblock_SLL0TOP -add SLICE_X48Y331:SLICE_X379Y257
+} else {
+    # However, limiting the registers to the slices containing UBUMPS increases congestion too much
+    # for PSI=64. Relaxing to constraint the clock region.
+    resize_pblock pblock_SLL2BOT -add CLOCKREGION_X1Y8:CLOCKREGION_X9Y8
+    resize_pblock pblock_SLL1TOP -add CLOCKREGION_X1Y7:CLOCKREGION_X9Y7
+    resize_pblock pblock_SLL1BOT -add CLOCKREGION_X1Y5:CLOCKREGION_X9Y5
+    # The clock region on SLL0 is very small and does't catch all SLLs
+    resize_pblock pblock_SLL0TOP -add SLICE_X48Y331:SLICE_X379Y257
+}
 
-#resize_pblock pblock_SLL2BOT -add CLOCKREGION_X0Y8:CLOCKREGION_X9Y8
-#resize_pblock pblock_SLL1TOP -add CLOCKREGION_X0Y7:CLOCKREGION_X9Y7
-#resize_pblock pblock_SLL1BOT -add CLOCKREGION_X0Y5:CLOCKREGION_X9Y5
-#resize_pblock pblock_SLL0TOP -add CLOCKREGION_X0Y4:CLOCKREGION_X9Y4
-#resize_pblock pblock_CLKROOT -add CLOCKREGION_X6Y0
+# Constraining the clock root
+resize_pblock pblock_CLKROOT -add CLOCKREGION_X6Y0
 
 # parent
 set_property PARENT pblock_SLR1 [get_pblocks {pblock_SLL1TOP pblock_SLL1BOT}]

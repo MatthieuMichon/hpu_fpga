@@ -75,6 +75,11 @@ add_cells_to_pblock [get_pblocks pblock_SLR2] [get_cells -hier -regexp .*/hpu_3p
 add_cells_to_pblock [get_pblocks pblock_SLR2] [get_cells -hier -regexp .*/fifo_element_isc_dop] -clear_locs
 add_cells_to_pblock [get_pblocks pblock_SLR2] [get_cells -hier -regexp .*/fifo_element_isc_ack] -clear_locs
 
+# Constrain SLR crossing flops
+add_cells_to_pblock -quiet [get_pblocks pblock_SLL2BOT] [get_cells -hier -regexp -filter {NAME =~ ".*/hpu_3parts_1in3_core/pe_pbs_with_entry_subsidiary/decomp_balanced_sequential/gen_loop\[.*\].gen_no_first_coef.decomp_balseq_core/s1_subw_result_reg\[.*\]"}]
+add_cells_to_pblock -quiet [get_pblocks pblock_SLL1TOP] [get_cells -hier -regexp -filter {NAME =~ ".*/hpu_3parts_2in3_core/pe_pbs_with_ntt_core_head/gen_head_ntt.gen_ntt_core_gf64.ntt_core_gf64_head/ntt_core_gf64_middle/gen_fwd_ntt.gen_fwd_loop\[.*\].ntt_core_gf64_bu_stage_column_fwd/gen_bu_loop\[.*\].gen_not_0.ntt_core_gf64_bu_cooley_tukey/gen_do_shift.ntt_core_gf64_pmr_shift_cst/in_delay_side/gen_latency.side_dly_reg\[.*\]\[.*\]" \
+                                                                                       || NAME =~ ".*/hpu_3parts_2in3_core/pe_pbs_with_modsw/pep_br_mod_switch_to_2powerN/gen_modw_p_loop\[.*\].gen_modw_r_loop\[.*\].gen_modsw_inst_gt_0.mod_switch_to_2powerN/gen_out_reg.s2_result_reg\[.*\]"}]
+
 add_cells_to_pblock -quiet [get_pblocks pblock_SLL2BOT] [get_cells -hier -regexp -filter {NAME =~ ".*/p1_p2_sll.*/in_pipe"}]
 add_cells_to_pblock -quiet [get_pblocks pblock_SLL2BOT] [get_cells -hier -regexp -filter {NAME =~ ".*/p2_p1_sll.*/out_pipe"}]
 
@@ -86,7 +91,8 @@ opt_add_to_pblock [get_pblocks pblock_SLL0TOP] [get_cells -hier -regexp -filter 
 opt_add_to_pblock [get_pblocks pblock_SLL0TOP] [get_cells -hier -regexp -filter {NAME =~ ".*gen_inter_part_pipe.in_p3_p2_ntt_proc_.*_dly.*"}]
 opt_add_to_pblock [get_pblocks pblock_SLL1BOT] [get_cells -hier -regexp -filter {NAME =~ ".*gen_inter_part_pipe.out_p3_p2_ntt_proc_.*"}]
 
-# This is an alternate way of constraining the SLL flops. However, this one generates DRC errors.
+# This is an alternate way of constraining the SLL flops and it supposedly uses IMUX registers,
+# sparing registers for other uses. However, generates DRC errors.
 #set sll_regs [ \
 #    get_cells -hier -regexp -filter { \
 #           NAME =~ ".*gen_inter_part_pipe\..*_ntt_proc_.*_dly.*" \
