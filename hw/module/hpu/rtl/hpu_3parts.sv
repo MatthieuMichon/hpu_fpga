@@ -231,7 +231,7 @@ module hpu_3parts
     .clk_in  ( prc_clk_free       ) ,
     .rst_in  ( prc_rst_sll[0]     ) ,
     .rst_nxt ( prc_rst_sll[1]     ) ,
-    .clk_en  ( /*NC*/             ) ,
+    .clk_en  ( /*UNUSED*/   ) ,
     .rst_out ( prc_srst_n_part[1] )
   );
 

@@ -4,7 +4,7 @@
 // ----------------------------------------------------------------------------------------------
 // Description  : Generic FPGA clock and reset conditioning module
 // ==============================================================================================
-// The main idea here is the give setup and hold margin to resets. To that effect, the clock will be
+// The main idea here is to give setup and hold margin to resets. To that effect, the clock will be
 // stopped while the reset changes state. This will only help if you set a multi cycle path onto the
 // reset signal, so don't forget that. For example:
 //
@@ -19,7 +19,7 @@
 //     set_max_delay [expr $CE_MARGIN * period] -to [get_pins clk_rst/clock_gate/CE]
 //
 // There can only be a single module in the whole design. If you replicate this block for every SLR
-// each SLR might get out of reset a different times. Still, this was designed to have margin to
+// each SLR might get out of reset at different times. Still, this was designed to have margin to
 // spare.
 //
 // Note that you'll now need to hold the reset low for HOLD_MARGIN + SETUP_MARGIN + CE_MARGIN extra
@@ -90,7 +90,7 @@ module fpga_clock_reset #(
   initial begin
     next_rst   = 1'b0;
     rst        = '0;
-    rst_ff     = '0;
+    rst_ff     = 1'b0;
     clk_en  = 1'b1;
     counter = COUNTER_W'(SETUP_VAL);
   end

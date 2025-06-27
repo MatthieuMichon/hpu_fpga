@@ -59,7 +59,7 @@ add_cells_to_pblock [get_pblocks pblock_CLKROOT] \
 
 # Make sure that the reset root is at SLR0
 add_cells_to_pblock [get_pblocks pblock_SLR0] \
-    [get_cells -hier -regexp -filter {NAME =~ .*/usr_._psr}]
+    [get_cells -hier -regexp -filter {NAME =~ .*/clock_reset/usr_._psr}]
 
 # And pin each reset distribution logic to the rigth SLR
 add_cells_to_pblock [get_pblocks pblock_SLR2] \

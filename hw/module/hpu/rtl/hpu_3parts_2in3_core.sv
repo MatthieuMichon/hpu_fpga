@@ -251,8 +251,8 @@ module hpu_3parts_2in3_core
     .decomp_ntt_last_pbs        (decomp_ntt_last_pbs),
     .decomp_ntt_full_throughput (decomp_ntt_full_throughput),
     .decomp_ntt_ctrl_avail      (decomp_ntt_ctrl_avail),
-    .decomp_ntt_data_rdy        (/*NC*/),
-    .decomp_ntt_ctrl_rdy        (/*NC*/),
+    .decomp_ntt_data_rdy        (/*UNUSED*/),
+    .decomp_ntt_ctrl_rdy        (/*UNUSED*/),
 
     .next_data                  (next_otw_data.data),
     .next_data_avail            (next_otw_data_avail),
