@@ -1145,6 +1145,22 @@ logic                                        axi4_trc_bready;
 // ============================================================================================== --
 
 // ---------------------------------------------------------------------------------------------- --
+// Soft Reset
+// ---------------------------------------------------------------------------------------------- --
+task automatic soft_reset;
+begin
+  logic [REG_DATA_W-1:0] rdata;
+
+  $display("%t > INFO: Soft Reset",$time);
+
+  gen_cfg_axil_loop[P3_OFS].maxil_drv_if.write_trans(HPU_RESET_TRIGGER_OFS, 1);
+  for(rdata = '0; !rdata[REG_DATA_W-1];)
+    gen_cfg_axil_loop[P3_OFS].maxil_drv_if.read_trans(HPU_RESET_TRIGGER_OFS, rdata);
+  gen_cfg_axil_loop[P3_OFS].maxil_drv_if.write_trans(HPU_RESET_TRIGGER_OFS, 0);
+end
+endtask
+
+// ---------------------------------------------------------------------------------------------- --
 // check_dummy_reg
 // ---------------------------------------------------------------------------------------------- --
 task automatic check_dummy_reg;
@@ -1933,6 +1949,11 @@ endtask
     while (!s_rst_n) @(posedge clk);
     while (!cfg_srst_n) @(posedge cfg_clk);
     repeat(10) @(posedge clk);
+
+    //===============================
+    // Soft Reset
+    //===============================
+    soft_reset();
 
     //===============================
     // Check dummy registers

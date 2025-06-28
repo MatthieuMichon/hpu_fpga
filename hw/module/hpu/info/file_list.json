@@ -60,6 +60,20 @@
             "is_include_file": false
         },
         {
+            "name": "hw/module/hpu/rtl/hpu_sync.sv",
+            "library": "work",
+            "env": ["all"],
+            "target": ["all"],
+            "is_include_file": false
+        },
+        {
+            "name": "hw/module/hpu/rtl/hpu_soft_reset.sv",
+            "library": "work",
+            "env": ["all"],
+            "target": ["all"],
+            "is_include_file": false
+        },
+        {
             "name": "hw/module/hpu/rtl/hpu_qualified_pipe.sv",
             "library": "work",
             "env": ["all"],

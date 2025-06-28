@@ -1,7 +1,7 @@
 // ============================================================================================== //
 // Description  : register  map address definition package
 // This file was generated with rust regmap generator:
-//  * Date:  2025-06-12
+//  * Date:  2025-07-02
 //  * Tool_version: 9bab20def30cfd61d2ed40616bd05d08a747ddf4
 // ---------------------------------------------------------------------------------------------- //
 //

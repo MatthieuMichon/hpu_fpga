@@ -202,4 +202,44 @@ package pep_if_pkg;
   } pep_rif_elt_t;
 
   localparam int PEP_RIF_ELT_W = $bits(pep_rif_elt_t);
+
+  // ============================================================================================ //
+  // Top level interfaces
+  // ============================================================================================ //
+  typedef struct packed {
+    logic [PSI-1:0][R-1:0][PBS_B_W:0] data; // 2s complement
+    logic                             sob;
+    logic                             eob;
+    logic                             sog;
+    logic                             eog;
+    logic                             sol;
+    logic                             eol;
+    logic [BPBS_ID_W-1:0]             pbs_id;
+    logic                             last_pbs;
+    logic                             full_throughput;
+  } decomp_ntt_data_t;
+
+  typedef struct packed {
+    logic [PSI-1:0][R-1:0]            data_avail;
+    logic                             ctrl_avail;
+  } decomp_ntt_ctrl_t;
+
+  typedef struct packed {
+    // Mod switch
+    logic [PSI-1:0][R-1:0][MOD_Q_W-1:0] data;
+    logic                               sob;
+    logic                               eob;
+    logic                               sol;
+    logic                               eol;
+    logic                               sog;
+    logic                               eog;
+    logic [BPBS_ID_W-1:0]               pbs_id;
+  } ntt_acc_modsw_data_t;
+
+  typedef struct packed {
+    // Mod switch
+    logic [PSI-1:0][R-1:0]              data_avail;
+    logic                               ctrl_avail;
+  } ntt_acc_modsw_ctrl_t;
+
 endpackage

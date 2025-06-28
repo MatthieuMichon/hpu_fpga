@@ -97,42 +97,6 @@ module hpu_3parts
   // -------------------------------------------------------------------------------------------- --
   //-- NTT : ntt <-> mmacc
   // -------------------------------------------------------------------------------------------- --
-  typedef struct packed {
-    logic [PSI-1:0][R-1:0][PBS_B_W:0] data; // 2s complement
-    logic                             sob;
-    logic                             eob;
-    logic                             sog;
-    logic                             eog;
-    logic                             sol;
-    logic                             eol;
-    logic [BPBS_ID_W-1:0]             pbs_id;
-    logic                             last_pbs;
-    logic                             full_throughput;
-  } decomp_ntt_data_t;
-
-  typedef struct packed {
-    logic [PSI-1:0][R-1:0]            data_avail;
-    logic                             ctrl_avail;
-  } decomp_ntt_ctrl_t;
-
-  typedef struct packed {
-    // Mod switch
-    logic [PSI-1:0][R-1:0][MOD_Q_W-1:0] data;
-    logic                               sob;
-    logic                               eob;
-    logic                               sol;
-    logic                               eol;
-    logic                               sog;
-    logic                               eog;
-    logic [BPBS_ID_W-1:0]               pbs_id;
-  } ntt_acc_modsw_data_t;
-
-  typedef struct packed {
-    // Mod switch
-    logic [PSI-1:0][R-1:0]              data_avail;
-    logic                               ctrl_avail;
-  } ntt_acc_modsw_ctrl_t;
-
   decomp_ntt_data_t    in_decomp_ntt_data;
   decomp_ntt_ctrl_t    in_decomp_ntt_ctrl;
   decomp_ntt_data_t    out_decomp_ntt_data;
@@ -210,6 +174,25 @@ module hpu_3parts
 // ============================================================================================== --
   logic [2:0] prc_srst_n_part;
   logic [1:0] prc_rst_sll;
+  logic       hpu_reset;
+  logic       hpu_reset_done;
+  logic       soft_prc_srst_n;
+  logic       global_rst;
+
+  hpu_soft_reset
+  hpu_soft_reset (
+    .cfg_clk         ( cfg_clk            ) ,
+    .cfg_srst_n      ( cfg_srst_n         ) ,
+    .prc_clk_free    ( prc_clk_free       ) ,
+    .prc_srst_n_free ( prc_srst_n         ) ,
+    .prc_clk         ( prc_clk            ) ,
+    .prc_srst_n      ( prc_srst_n_part[2] ) ,
+    .hpu_reset       ( hpu_reset          ) ,
+    .hpu_reset_done  ( hpu_reset_done     ) ,
+    .soft_prc_srst_n ( soft_prc_srst_n    )
+  );
+
+  assign global_rst = prc_srst_n & soft_prc_srst_n;
 
   fpga_clock_reset #(
     .RST_POL         ( 1'b0                  ) ,
@@ -217,7 +200,7 @@ module hpu_3parts
     .INTRA_PART_PIPE ( 2*INTER_PART_PIPE + 1 ) // To match the latency of the other resets
   ) prc3_clk_rst (
     .clk_in  ( prc_clk_free       ) ,
-    .rst_in  ( prc_srst_n         ) ,
+    .rst_in  ( global_rst         ) ,
     .rst_nxt ( prc_rst_sll[0]     ) ,
     .clk_en  ( prc_ce             ) ,
     .rst_out ( prc_srst_n_part[2] )
@@ -231,7 +214,7 @@ module hpu_3parts
     .clk_in  ( prc_clk_free       ) ,
     .rst_in  ( prc_rst_sll[0]     ) ,
     .rst_nxt ( prc_rst_sll[1]     ) ,
-    .clk_en  ( /*UNUSED*/   ) ,
+    .clk_en  ( /*UNUSED*/         ) ,
     .rst_out ( prc_srst_n_part[1] )
   );
 
@@ -242,8 +225,8 @@ module hpu_3parts
   ) prc1_clk_rst (
     .clk_in  ( prc_clk_free       ) ,
     .rst_in  ( prc_rst_sll[1]     ) ,
-    .rst_nxt ( /*NC*/             ) ,
-    .clk_en  ( /*NC*/             ) ,
+    .rst_nxt ( /*UNUSED*/         ) ,
+    .clk_en  ( /*UNUSED*/         ) ,
     .rst_out ( prc_srst_n_part[0] )
   );
 
@@ -757,7 +740,10 @@ module hpu_3parts
     .entry_bsk_proc            (out_entry_bsk_proc),
     .bsk_entry_proc            (in_bsk_entry_proc),
 
-    .p2_p3_pep_rif_elt         (out_p2_p3_pep_rif_elt)
+    .p2_p3_pep_rif_elt         (out_p2_p3_pep_rif_elt),
+
+    .hpu_reset                 (hpu_reset),
+    .hpu_reset_done            (hpu_reset_done)
   );
 
 endmodule
