@@ -31,19 +31,26 @@ create_pblock pblock_CLKROOT
 # The location of the SLLs are within 75 slices from the SLR border
 # according to: Vivado Design Suite Properties Reference Guide (UG912, 2025-05-29, section USER_SLL_REG)
 
-if [expr $::ntt_psi < 64] {
+if [expr $::ntt_psi < 32] {
     resize_pblock pblock_SLL2BOT -add SLICE_X48Y620:SLICE_X379Y694
     resize_pblock pblock_SLL1TOP -add SLICE_X48Y619:SLICE_X379Y545
     resize_pblock pblock_SLL1BOT -add SLICE_X48Y332:SLICE_X379Y406
     resize_pblock pblock_SLL0TOP -add SLICE_X48Y331:SLICE_X379Y257
-} else {
+} elseif [expr $::ntt_psi < 64] {
     # However, limiting the registers to the slices containing UBUMPS increases congestion too much
-    # for PSI=64. Relaxing to constraint the clock region.
+    # for PSI=32. Relaxing to constraint the clock region.
     resize_pblock pblock_SLL2BOT -add CLOCKREGION_X1Y8:CLOCKREGION_X9Y8
     resize_pblock pblock_SLL1TOP -add CLOCKREGION_X1Y7:CLOCKREGION_X9Y7
     resize_pblock pblock_SLL1BOT -add CLOCKREGION_X1Y5:CLOCKREGION_X9Y5
     # The clock region on SLL0 is very small and does't catch all SLLs
     resize_pblock pblock_SLL0TOP -add SLICE_X48Y331:SLICE_X379Y257
+} else {
+    # Congestion is over the roof on PSI=64, so don't restrict. Placement will be bad initially, but
+    # we'll gain time in routing.
+    resize_pblock pblock_SLL2BOT -add SLR2
+    resize_pblock pblock_SLL1TOP -add SLR1
+    resize_pblock pblock_SLL1BOT -add SLR1
+    resize_pblock pblock_SLL0TOP -add SLR0
 }
 
 # Constraining the clock root
@@ -54,8 +61,7 @@ set_property PARENT pblock_SLR1 [get_pblocks {pblock_SLL1TOP pblock_SLL1BOT}]
 set_property PARENT pblock_SLR0 [get_pblocks {pblock_SLL0TOP pblock_CLKROOT}]
 set_property PARENT pblock_pl [get_pblocks pblock_SLR0] [get_pblocks pblock_SLR1] [get_pblocks pblock_SLR2]
 
-set_property IS_SOFT FALSE [get_pblocks pblock_SLR*]
-set_property IS_SOFT FALSE [get_pblocks pblock_SLL*]
+set_property IS_SOFT FALSE [get_pblocks pblock*]
 
 #Set false path
 set_false_path -from [get_pins -hierarchical -regexp {.*hpu_regif_cfg_.in3/.*reg.*/C}] -to [get_clocks  -regexp {.*prc_clk.*}]
