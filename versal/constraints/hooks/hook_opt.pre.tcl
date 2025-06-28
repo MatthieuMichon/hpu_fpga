@@ -9,6 +9,9 @@ puts "current PSI is: $::ntt_psi"
 # Rename the clock gated clock to something sensible
 create_generated_clock -name prc_clk [get_pins -of_objects [get_clocks clkout1_primitive]]
 
+#cfg clock and prc clocks are asynchronous
+set_clock_groups -name async_cfg_prc -asynchronous -group {cfg_clk} -group [get_clocks  -regexp {.*prc_clk.*}]
+
 # PBLOCK
 create_pblock pblock_pl
 resize_pblock pblock_pl -add SLR0
@@ -62,9 +65,6 @@ set_property PARENT pblock_SLR0 [get_pblocks {pblock_SLL0TOP pblock_CLKROOT}]
 set_property PARENT pblock_pl [get_pblocks pblock_SLR0] [get_pblocks pblock_SLR1] [get_pblocks pblock_SLR2]
 
 set_property IS_SOFT FALSE [get_pblocks pblock*]
-
-#Set false path
-set_false_path -from [get_pins -hierarchical -regexp {.*hpu_regif_cfg_.in3/.*reg.*/C}] -to [get_clocks  -regexp {.*prc_clk.*}]
 
 # Constrain the reset path, with loose constraints
 set rst_setup_hold_margin 3
