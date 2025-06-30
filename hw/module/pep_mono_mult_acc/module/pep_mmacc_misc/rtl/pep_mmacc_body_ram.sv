@@ -39,24 +39,25 @@ module pep_mmacc_body_ram
 // ============================================================================================== --
 // Local parameters
 // ============================================================================================== --
-  localparam int unsigned BR_CORR_W   = MOD_KSK_W + KS_KEY_MEAN_F;
+  localparam int unsigned BR_CORR_W      = MOD_KSK_W + KS_KEY_MEAN_F;
+  localparam [MOD_KSK_W-1:0] CENTER_CORR = 1 << (MOD_KSK_W - LWE_COEF_W - 1); // MOD_KSK / (2 * 2N)
 
 // ============================================================================================= --
 // Input pipe
 // ============================================================================================= --
-  logic                  ram_wr_en;
-  logic [MOD_KSK_W-1:0]  ram_wr_data;
-  logic [PID_W-1:0]      ram_wr_pid;
-  logic                  ram_wr_parity;
+  logic                  sm1_wr_en;
+  logic [MOD_KSK_W-1:0]  sm1_wr_data;
+  logic [PID_W-1:0]      sm1_wr_pid;
+  logic                  sm1_wr_parity;
 
   always_ff @(posedge clk)
-    if (!s_rst_n) ram_wr_en <= 1'b0;
-    else          ram_wr_en <= ks_boram_wr_en;
+    if (!s_rst_n) sm1_wr_en <= 1'b0;
+    else          sm1_wr_en <= ks_boram_wr_en;
 
   always_ff @(posedge clk) begin
-    ram_wr_data   <= ks_boram_wr_data;
-    ram_wr_parity <= ks_boram_wr_parity;
-    ram_wr_pid    <= ks_boram_wr_pid;
+    sm1_wr_data   <= ks_boram_wr_data;
+    sm1_wr_parity <= ks_boram_wr_parity;
+    sm1_wr_pid    <= ks_boram_wr_pid;
   end
 
   // Correction signals
@@ -122,6 +123,30 @@ module pep_mmacc_body_ram
     .out_vld (boram_sxt_data_vld),
     .out_rdy (boram_sxt_data_rdy)
   );
+
+// ============================================================================================= --
+// Center
+// ============================================================================================= --
+// Center the body, for the shifted modulo switch.
+// Before the mean compensation and modswitch, center the body, by subtracting
+// MOD_KSK / (2*2N)
+  logic                  ram_wr_en;
+  logic [MOD_KSK_W-1:0]  ram_wr_data;
+  logic [PID_W-1:0]      ram_wr_pid;
+  logic                  ram_wr_parity;
+
+  logic [MOD_KSK_W-1:0]  sm1_wr_data_centered;
+  assign sm1_wr_data_centered = sm1_wr_data - CENTER_CORR;
+
+  always_ff @(posedge clk)
+    if (!s_rst_n) ram_wr_en <= 1'b0;
+    else          ram_wr_en <= sm1_wr_en;
+
+  always_ff @(posedge clk) begin
+    ram_wr_data   <= sm1_wr_data_centered;
+    ram_wr_parity <= sm1_wr_parity;
+    ram_wr_pid    <= sm1_wr_pid;
+  end
 
 // ============================================================================================= --
 // RAM

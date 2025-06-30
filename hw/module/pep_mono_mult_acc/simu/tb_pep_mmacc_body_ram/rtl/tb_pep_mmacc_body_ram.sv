@@ -415,6 +415,10 @@ module tb_pep_mmacc_body_ram;
     sink_rdata.start(0);
   end
 
+  function ks_coeff_t center(input ks_coeff_t value); // For the shifted modulo switch
+    return (value - (MOD_KSK / (2*2*N))) % MOD_KSK;
+  endfunction
+
   function modsw_coeff_t mod_switch(input real value);
     return $floor(value / (2**(MOD_KSK_W-LWE_COEF_W)) + 0.5);
   endfunction
@@ -431,7 +435,7 @@ module tb_pep_mmacc_body_ram;
         modsw_coeff_t ref_lwe;
 
         ref_pid  = rd_add_q.pop_front();
-        ref_lwe  = mod_switch(real'(ks_lwe_a[ref_pid]) - real'(seq_corr_acc[ref_pid]) * KS_KEY_MEAN_R);
+        ref_lwe  = mod_switch(real'(center(ks_lwe_a[ref_pid])) - real'(seq_corr_acc[ref_pid]) * KS_KEY_MEAN_R);
 
         // Not using assert because it causes lint warnings about side effects
         if(ref_lwe != boram_sxt_data) begin
