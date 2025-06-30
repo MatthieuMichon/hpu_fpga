@@ -242,4 +242,50 @@ package pep_if_pkg;
     logic                               ctrl_avail;
   } ntt_acc_modsw_ctrl_t;
 
+  typedef struct packed {
+    logic [PSI-1:0][R-1:0]              data_avail;
+    logic                               ctrl_avail;
+  } ntt_proc_ctrl_t;
+
+  typedef struct packed {
+    decomp_ntt_data_t                   decomp_ntt_data;
+    ntt_proc_cmd_t                      ntt_proc_cmd;
+  } p1_p2_sll_data_t;
+
+  typedef struct packed {
+    decomp_ntt_ctrl_t                   decomp_ntt_ctrl;
+    logic                               ntt_proc_cmd_avail;
+    entrybsk_proc_t                     bsk_ctrl;
+  } p1_p2_sll_ctrl_t;
+
+  typedef struct packed {
+    ntt_acc_modsw_data_t                ntt_acc_modsw_data;
+  } p2_p1_sll_data_t;
+
+  typedef struct packed {
+    ntt_acc_modsw_ctrl_t                ntt_acc_modsw_ctrl;
+    bskentry_proc_t                     bsk_ctrl;
+  } p2_p1_sll_ctrl_t;
+
+  typedef struct packed {
+    ntt_proc_data_t                     ntt_proc_data;
+    ntt_proc_cmd_t                      ntt_proc_cmd;
+  } p2_p3_sll_data_t;
+
+  typedef struct packed {
+    ntt_proc_ctrl_t                     ntt_ctrl;
+    pep_rif_elt_t                       pep_rif_elt;
+    logic                               ntt_proc_cmd_avail;
+    entrybsk_proc_t                     bsk_ctrl;
+  } p2_p3_sll_ctrl_t;
+
+  typedef struct packed {
+    ntt_proc_data_t                     ntt_proc_data;
+  } p3_p2_sll_data_t;
+
+  typedef struct packed {
+    ntt_proc_ctrl_t                     ntt_ctrl;
+    bskentry_proc_t                     bsk_ctrl;
+  } p3_p2_sll_ctrl_t;
+
 endpackage
