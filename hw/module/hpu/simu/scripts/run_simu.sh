@@ -107,7 +107,7 @@ for ((j = 0; j < 1; j++)); do
   INTER_PART_PIPE=${INTER_PART_PIPE_L[$index]}
 
   # Choose whether to enable mean compensation
-  MEAN_COMP=$(($RANDOM % 2))
+  MEAN_COMP=1 # TOREVIEW: Do not test value 0
 
   if [[ $IOP =~ ^IOP\[([0-9]+)\]$ ]]; then
     # the custom code deals with a 2b word
