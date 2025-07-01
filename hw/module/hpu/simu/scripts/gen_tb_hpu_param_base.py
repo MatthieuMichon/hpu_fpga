@@ -233,7 +233,7 @@ if __name__ == '__main__':
     r1.add_constraint(cstr_batch,('BATCH_PBS_NB','TOTAL_PBS_NB'))
     r1.add_constraint(cstr_pbs_level_div, ('BWD_PSI_DIV', 'PBS_L', 'NTT_ARCH', 'PSI'))
     r1.add_constraint(cstr_level, ('PBS_B_W','PBS_L','MOD_NTT_W'))
-    r1.add_constraint(cstr_level, ('KS_B_W','KS_L','MOD_NTT_W'))
+    r1.add_constraint(cstr_level, ('KS_B_W','KS_L','MOD_KSK_W'))
     r1.add_constraint(cstr_ks, ('KS_L', 'LBX', 'LBY', 'LBZ', 'R', 'S', 'GLWE_K', 'MOD_KSK_W', 'MOD_NTT_W','BATCH_PBS_NB'))
     r1.add_constraint(cstr_ksk_w, ('LBZ', 'MOD_KSK_W'))
     r1.add_constraint(cstr_regf_seq, ('REGF_SEQ', 'REGF_COEF_NB'))
