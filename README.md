@@ -216,7 +216,7 @@ cd ${PROJECT_DIR}/versal
 
 The documentation about [HPU parameters](./docs/hpu_parameters.md) and [parsing flags](./docs/parsing_flags.md) can help you understand the content of these 3 scripts and change some of these parameters to adapt the HPU to your needs.
 
-A tested bitstream of the HPU compiled using run_syn_hpu_3parts_psi64.sh is available in directory *versal/bitstreams*.
+A tested bitstream of the HPU compiled using run_syn_hpu_3parts_psi64.sh is available in tfhe-rs repo.
 
 ### Simulation
 
@@ -401,10 +401,6 @@ DEVICE="${PCIE_CARD%% *}"
 
 # The following task will take a couple of minutes ...
 sudo -E ami_tool cfgmem_program -d $DEVICE -t primary -i ${PROJECT_DIR}/versal/output_psi64/top_hpu.pdi -p 1
-```
-You can also load the bitstream provided in `versal/bitstreams/` directory:
-```
-sudo -E ami_tool cfgmem_program -d $DEVICE -t primary -i ${PROJECT_DIR}/versal/bitstreams/top_hpu_psi64_350_tuniform.00000b715273035020521e2505071329.pdi -p 1
 ```
 
 ### Programmation through PCIE
