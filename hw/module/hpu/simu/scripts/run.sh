@@ -78,6 +78,8 @@ FPGA="u55c"
 
 MOD_SWITCH_MEAN_COMP=1
 
+DOP_IMPLEM="Ilp"
+
 GRAM_NB=4
 TOP="hpu"
 GLWE_PC=1
@@ -142,7 +144,7 @@ echo "-y                       : directory containing microcode files. (default 
 echo "-a                       : default ucode IOP (default CUST_0)"
 echo "-M                       : ISC depth (default $ISC_DEPTH)"
 echo "-T                       : Toml regif definition file (default \"$REGIF_FILE_S\"). Use several times to give all the regfiles, if several."
-echo "-p                       : USE_MEAN_COMPENSATION (default 1)"
+echo "-p                       : Dop implementation (default Ilp)"
 echo "-- <run_edalize options> : run_edalize options."
 
 
@@ -307,7 +309,7 @@ while getopts "Chzg:l:R:P:S:w:t:m:c:H:K:s:e:b:q:W:A:J:I:L:B:r:V:X:Y:Z:G:o:u:f:O:
       REGIF_FILE_S_TMP+=($OPTARG)
       ;;
     p)
-      MOD_SWITCH_MEAN_COMP=$OPTARG
+      DOP_IMPLEM=$OPTARG
       ;;
     :)
       echo "$0: Must supply an argument to -$OPTARG." >&2
@@ -376,6 +378,9 @@ if [ $(($TOTAL_PBS_NB % $GRAM_NB)) -ne 0 ]; then
   echo "ERROR> TOTAL_PBS_NB ($TOTAL_PBS_NB) should be a multiple of GRAM_NB ($GRAM_NB)"
   exit 1
 fi
+
+# Artificial number. Not used by the HW, but for the DOp code generation.
+MIN_PBS_NB=$(($BATCH_PBS_NB - 2))
 
 #--------------
 # NTT
@@ -940,6 +945,8 @@ if [ $GEN_STIMULI -eq 1 ] ; then
   gen_cfg_cmd="python3 ${hpu_cfg_script} \
                 -n $INT_SIZE \
                 --regmap_file ${REGIF_FILE_S_L[@]} \
+                --min_batch_size $MIN_PBS_NB \
+                --dop_implementation $DOP_IMPLEM \
                 $gen_cfg_args \
                 -o ${INPUT_DIR}/hpu_cfg.toml \
                 -m $MOD_SWITCH_MEAN_COMP \

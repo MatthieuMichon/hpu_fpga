@@ -28,6 +28,8 @@ if __name__ == '__main__':
     parser.add_argument('--regmap_file',  dest='regmap_file',nargs='+', help="RegisterMap config filenames.", required=True)
     parser.add_argument('-o',  dest='outfile',      type=str, help="Output filename.", required=True)
     parser.add_argument('--cust_iop',  dest='cust_iop', action='append', type=str, help="Custom IOP", default=[])
+    parser.add_argument('--min_batch_size',  dest='min_batch_size', type=int, help="Minimal batch size", default=4)
+    parser.add_argument('--dop_implementation',  dest='dop_implementation', type=str, help="DOp implementation", choices=["Ilp", "Llt"], default="Ilp")
     parser.add_argument('-f',  dest='force',        help="Overwrite if file already exists", action="store_true", default=False)
     parser.add_argument('-m',  dest='mod_switch_mean_comp',
                         help="Sets whether to use mean compensation in the mockup",

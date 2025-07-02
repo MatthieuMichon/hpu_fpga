@@ -67,10 +67,10 @@ trace_pc = {Hbm={pc=35}}
 trace_depth = 32
 
 [firmware]
-  implementation = "Llt"
+  implementation = "{{dop_implementation}}"
   integer_w=[{{integer_w}}]
   fill_batch_fifo=false
-  min_batch_size = 12
+  min_batch_size = {{min_batch_size}}
   kogge_cfg=""
 {% if cust_iop|length > 0 %}
 {% for key, value in cust_iop.items() -%}
