@@ -290,7 +290,7 @@ ${PROJECT_DIR}/fw/ublaze/script/generate_core.sh
 >
 > We assume that the user has already used a V80 board and knows its basic usage.<br>
 > We assume that the [flash](https://xilinx.github.io/AVED/latest/AVED%2BUpdating%2BFPT%2BImage%2Bin%2BFlash.html) has already been correctly programmed and the example design [is in partition 0](https://xilinx.github.io/AVED/latest/AVED%2BUpdating%2BDesign%2BPDI%2Bin%2BFlash.html)<br>
-> We recommend to use partition 1 for your freshly generated pdi targeting the flash. This will enable you to fallback on partition 0 after a reboot.
+> We recommend not to update the V80 board flash content as tfhe-hpu-backend can dynamically load your bitstream via PCIe. But if you really need to put your bitstream in flash, we recommend to use partition 1 for your freshly generated pdi. This will enable you to fallback on partition 0 after a reboot.
 
 > [!WARNING]
 >
