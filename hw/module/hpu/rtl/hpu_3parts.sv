@@ -348,7 +348,7 @@ module hpu_3parts
           out_p1_prc_interrupt <= in_p1_prc_interrupt;
         end
 
-      // Part 3
+      // Part 3 TODO: Not clear how are the interrupts going to be used.
       always_ff @(posedge prc_clk)
         if (!prc_srst_n_part[2]) begin
           out_p3_prc_interrupt <= '0;

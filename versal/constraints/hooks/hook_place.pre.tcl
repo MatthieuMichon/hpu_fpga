@@ -18,14 +18,6 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 ############################################################
-proc opt_add_to_pblock {pblock objs} {
-    if [expr [llength $objs] > 0] {
-        add_cells_to_pblock -quiet $pblock $objs
-    } else {
-      puts "Warning: opt_add_to_pblock(): nothing to add onto $pblock."
-    }
-}
-
 set cdir [pwd]
 puts "current directory: $cdir"
 source ${cdir}/../../uservars.tcl
@@ -84,11 +76,6 @@ add_cells_to_pblock -quiet [get_pblocks pblock_SLL2BOT] [get_cells -hier -regexp
 
 add_cells_to_pblock -quiet [get_pblocks pblock_SLL1TOP] [get_cells -hier -regexp -filter {NAME =~ ".*/p1_p2_sll.*/out_pipe"}]
 add_cells_to_pblock -quiet [get_pblocks pblock_SLL1TOP] [get_cells -hier -regexp -filter {NAME =~ ".*/p2_p1_sll.*/in_pipe"}]
-
-opt_add_to_pblock [get_pblocks pblock_SLL1BOT] [get_cells -hier -regexp -filter {NAME =~ ".*gen_inter_part_pipe.in_p2_p3_ntt_proc_.*_dly.*"}]
-opt_add_to_pblock [get_pblocks pblock_SLL0TOP] [get_cells -hier -regexp -filter {NAME =~ ".*gen_inter_part_pipe.out_p2_p3_ntt_proc_.*"}]
-opt_add_to_pblock [get_pblocks pblock_SLL0TOP] [get_cells -hier -regexp -filter {NAME =~ ".*gen_inter_part_pipe.in_p3_p2_ntt_proc_.*_dly.*"}]
-opt_add_to_pblock [get_pblocks pblock_SLL1BOT] [get_cells -hier -regexp -filter {NAME =~ ".*gen_inter_part_pipe.out_p3_p2_ntt_proc_.*"}]
 
 # This is an alternate way of constraining the SLL flops and it supposedly uses IMUX registers,
 # sparing registers for other uses. However, generates DRC errors.

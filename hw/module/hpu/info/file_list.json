@@ -53,13 +53,6 @@
             "is_include_file": false
         },
         {
-            "name": "hw/module/hpu/rtl/hpu_reset_dist.sv",
-            "library": "work",
-            "env": ["all"],
-            "target": ["all"],
-            "is_include_file": false
-        },
-        {
             "name": "hw/module/hpu/rtl/hpu_sync.sv",
             "library": "work",
             "env": ["all"],

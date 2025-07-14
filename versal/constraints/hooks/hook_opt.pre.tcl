@@ -60,6 +60,7 @@ if [expr $::ntt_psi < 32] {
 resize_pblock pblock_CLKROOT -add CLOCKREGION_X6Y0
 
 # parent
+set_property PARENT pblock_SLR2 [get_pblocks {pblock_SLL2BOT}]
 set_property PARENT pblock_SLR1 [get_pblocks {pblock_SLL1TOP pblock_SLL1BOT}]
 set_property PARENT pblock_SLR0 [get_pblocks {pblock_SLL0TOP pblock_CLKROOT}]
 set_property PARENT pblock_pl [get_pblocks pblock_SLR0] [get_pblocks pblock_SLR1] [get_pblocks pblock_SLR2]

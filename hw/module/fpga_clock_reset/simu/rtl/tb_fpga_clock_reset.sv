@@ -27,8 +27,9 @@ module tb_fpga_clock_reset;
   // ----------------------------------------------------------------------------------------------
   logic clk_in;
   logic rst_in;
-  logic clk_out;
+  logic clk_en;
   logic rst_out;
+  logic clk_out;
 
   // ----------------------------------------------------------------------------------------------
   // Stimulus
@@ -54,6 +55,7 @@ module tb_fpga_clock_reset;
       wait(rst_out && clk_out);
     end
 
+    $display("> SUCCEED !");
     $finish();
   end
 
@@ -93,9 +95,19 @@ module tb_fpga_clock_reset;
     .SETUP_MARGIN ( SETUP_MARGIN ) ,
     .CE_MARGIN    ( CE_MARGIN    )
   ) dut (
-    .clk_in  ( clk_in  ) ,
-    .rst_in  ( rst_in  ) ,
-    .clk_out ( clk_out ) ,
-    .rst_out ( rst_out )
+    .clk_in  ( clk_in     ) ,
+    .rst_in  ( rst_in     ) ,
+    .rst_nxt ( /*Unused*/ ) ,
+    .clk_en  ( clk_en     ) ,
+    .rst_out ( rst_out    )
+  );
+
+  BUFGCE #(
+    .CE_TYPE    ( "HARDSYNC"   ) ,
+    .SIM_DEVICE ( "VERSAL_HBM" )
+  ) clock_gate (
+    .CE ( clk_en  ) ,
+    .I  ( clk_in  ) ,
+    .O  ( clk_out )
   );
 endmodule

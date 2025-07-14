@@ -65,7 +65,7 @@ module fpga_clock_reset #(
   // --------------------------------------------------------------------------
 
   logic rst_dist;
-  hpu_reset_dist #(
+  fpga_reset_dist #(
     .RST_POL         ( RST_POL         ) ,
     .INTER_PART_PIPE ( INTER_PART_PIPE ) ,
     .INTRA_PART_PIPE ( INTRA_PART_PIPE )
@@ -88,11 +88,11 @@ module fpga_clock_reset #(
 
   // For FPGA only
   initial begin
-    next_rst   = 1'b0;
-    rst        = '0;
-    rst_ff     = 1'b0;
-    clk_en  = 1'b1;
-    counter = COUNTER_W'(SETUP_VAL);
+    next_rst = 1'b0;
+    rst      = '0;
+    rst_ff   = 1'b0;
+    clk_en   = 1'b1;
+    counter  = COUNTER_W'(SETUP_VAL);
   end
 
   // --------------------------------------------------------------------------

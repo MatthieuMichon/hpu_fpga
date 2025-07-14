@@ -8,7 +8,7 @@
 // ==============================================================================================
 
 (* keep_hierarchy = "yes" *)
-module hpu_reset_dist
+module fpga_reset_dist
 #(
   parameter bit          RST_POL         = 1'b0, // Active low = 0 or high = 1
   parameter int unsigned INTER_PART_PIPE = 3,    // Latency to the next part
