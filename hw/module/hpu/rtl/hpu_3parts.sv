@@ -50,10 +50,12 @@ module hpu_3parts
                                         // Note that 0 means not used.
 )
 (
-  input  logic                 prc_clk,    // process clock
-  input  logic                 prc_clk_free, // process clock, free running
-  input  logic                 prc_srst_n, // synchronous reset
-  output logic                 prc_ce,     // process clock enable
+  input  logic                 prc_free_clk,    // free running process clock
+  input  logic                 prc_free_srst_n, // free running process clock reset
+
+  input  logic                 prc_clk,         // gated process clock
+  output logic                 prc_ce,          // gated process clock enable
+  output logic                 prc_srst_n,      // gated process clock reset
 
   input  logic                 cfg_clk,    // config clock
   input  logic                 cfg_srst_n, // synchronous reset
@@ -157,8 +159,8 @@ module hpu_3parts
   hpu_soft_reset (
     .cfg_clk         ( cfg_clk            ) ,
     .cfg_srst_n      ( cfg_srst_n         ) ,
-    .prc_clk_free    ( prc_clk_free       ) ,
-    .prc_srst_n_free ( prc_srst_n         ) ,
+    .prc_free_clk    ( prc_free_clk       ) ,
+    .prc_free_srst_n ( prc_free_srst_n    ) ,
     .prc_clk         ( prc_clk            ) ,
     .prc_srst_n      ( prc_srst_n_part[2] ) ,
     .hpu_reset       ( hpu_reset          ) ,
@@ -166,14 +168,14 @@ module hpu_3parts
     .soft_prc_srst_n ( soft_prc_srst_n    )
   );
 
-  assign global_rst = prc_srst_n & soft_prc_srst_n;
+  assign global_rst = prc_free_srst_n & soft_prc_srst_n;
 
   fpga_clock_reset #(
     .RST_POL         ( 1'b0                  ) ,
     .INTER_PART_PIPE ( INTER_PART_PIPE       ) ,
     .INTRA_PART_PIPE ( 2*INTER_PART_PIPE + 1 ) // To match the latency of the other resets
   ) prc3_clk_rst (
-    .clk_in  ( prc_clk_free       ) ,
+    .clk_in  ( prc_free_clk       ) ,
     .rst_in  ( global_rst         ) ,
     .rst_nxt ( prc_rst_sll[0]     ) ,
     .clk_en  ( prc_ce             ) ,
@@ -185,7 +187,7 @@ module hpu_3parts
     .INTER_PART_PIPE ( INTER_PART_PIPE     ) ,
     .INTRA_PART_PIPE ( INTER_PART_PIPE + 1 ) // To match the latency of the other resets
   ) prc2_clk_rst (
-    .clk_in  ( prc_clk_free       ) ,
+    .clk_in  ( prc_free_clk       ) ,
     .rst_in  ( prc_rst_sll[0]     ) ,
     .rst_nxt ( prc_rst_sll[1]     ) ,
     .clk_en  ( /*UNUSED*/         ) ,
@@ -197,12 +199,14 @@ module hpu_3parts
     .INTER_PART_PIPE ( 0     ) ,
     .INTRA_PART_PIPE ( 1     ) // To match the latency of the other resets
   ) prc1_clk_rst (
-    .clk_in  ( prc_clk_free       ) ,
+    .clk_in  ( prc_free_clk       ) ,
     .rst_in  ( prc_rst_sll[1]     ) ,
     .rst_nxt ( /*UNUSED*/         ) ,
     .clk_en  ( /*UNUSED*/         ) ,
     .rst_out ( prc_srst_n_part[0] )
   );
+
+  assign prc_srst_n = prc_srst_n_part[1];
 
 //=====================================
 // Fifo element

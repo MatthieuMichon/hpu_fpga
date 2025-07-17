@@ -10,7 +10,7 @@ puts "current PSI is: $::ntt_psi"
 create_generated_clock -name prc_clk [get_pins -of_objects [get_clocks clkout1_primitive]]
 
 #cfg clock and prc clocks are asynchronous
-set_clock_groups -name async_cfg_prc -asynchronous -group {cfg_clk} -group [get_clocks  -regexp {.*prc_clk.*}]
+set_clock_groups -name async_cfg_prc -asynchronous -group {cfg_clk} -group [get_clocks  -regexp {.*prc_.*clk.*}]
 
 # PBLOCK
 create_pblock pblock_pl
@@ -66,6 +66,15 @@ set_property PARENT pblock_SLR0 [get_pblocks {pblock_SLL0TOP pblock_CLKROOT}]
 set_property PARENT pblock_pl [get_pblocks pblock_SLR0] [get_pblocks pblock_SLR1] [get_pblocks pblock_SLR2]
 
 set_property IS_SOFT FALSE [get_pblocks pblock*]
+
+#################################################################################################
+#                                            IMPORTANT:
+#################################################################################################
+# The following loose constraints are only possible because the design gates the clock before
+# changing the reset. The time between disabling the clock, changing the reset and enabling the
+# clock again is given in *fpga_clock_reset*. Please make sure that the design is configured to
+# margins equal or greater than the ones defined here.
+#################################################################################################
 
 # Constrain the reset path, with loose constraints
 set rst_setup_hold_margin 3

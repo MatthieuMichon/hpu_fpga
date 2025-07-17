@@ -53,13 +53,6 @@
             "is_include_file": false
         },
         {
-            "name": "hw/module/hpu/rtl/hpu_sync.sv",
-            "library": "work",
-            "env": ["all"],
-            "target": ["all"],
-            "is_include_file": false
-        },
-        {
             "name": "hw/module/hpu/rtl/hpu_soft_reset.sv",
             "library": "work",
             "env": ["all"],
@@ -94,6 +87,7 @@
     "dependency_dir": [
         "hw/common_lib/common_package",
         "hw/common_lib/stream_to_pipe",
+        "hw/common_lib/cdc/module/xpm_cdc_single_wrapper",
         "hw/module/param",
         "hw/module/top_common",
         "hw/module/axi_if/module/axi_if_common",

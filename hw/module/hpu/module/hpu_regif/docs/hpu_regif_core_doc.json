@@ -3601,7 +3601,7 @@
           "name": "trigger",
           "description": "A soft reset for the whole HPU reconfigurable logic",
           "owner": "Kernel",
-          "read_access": "Read",
+          "read_access": "ReadNotify",
           "write_access": "WriteNotify",
           "offset": 131328,
           "default": {

@@ -61,6 +61,7 @@ module hpu_regif_cfg_3in3
   logic [BSK_PC_MAX_L-1:0][2*REG_DATA_W-1:0]         r_bsk_mem_addr;
   logic [REQ_ACK_NB-1:0][REG_DATA_W-1:0]             r_req_ack_upd;
   logic [REQ_ACK_NB-1:0]                             r_req_ack_wr_en;
+  logic [REQ_ACK_NB-1:0]                             r_req_ack_rd_en;
   logic [REG_DATA_W-1:0]                             r_wr_data;
   logic [REQ_ACK_NB-1:0]                             req_cmd;
   logic [REQ_ACK_NB-1:0]                             ack_rsp;
@@ -68,16 +69,17 @@ module hpu_regif_cfg_3in3
 // Reset interface
   assign hpu_reset = req_cmd[REQ_ACK_HPU_RST_OFS];
   assign ack_rsp[REQ_ACK_HPU_RST_OFS] = hpu_reset_done;
-  hpu_regif_req_ack
+  hpu_regif_req_ack_rd
   #(
      .IN_NB       (REQ_ACK_NB),
      .REG_DATA_W  (REG_DATA_W)
-  ) hpu_regif_req_ack (
+  ) hpu_regif_req_ack_rd (
     .clk             (cfg_clk),
     .s_rst_n         (cfg_srst_n),
 
     .r_req_ack_upd   (r_req_ack_upd),
     .r_req_ack_wr_en (r_req_ack_wr_en),
+    .r_req_ack_rd_en (r_req_ack_rd_en),
     .r_wr_data       (r_wr_data),
 
     .req_cmd         (req_cmd),
@@ -152,6 +154,7 @@ module hpu_regif_cfg_3in3
       .r_hbm_axi4_addr_3in3_bsk_pc15_msb  (r_bsk_mem_addr[15][1*REG_DATA_W+:REG_DATA_W]),
       .r_hpu_reset_trigger_upd            (r_req_ack_upd[REQ_ACK_HPU_RST_OFS]),
       .r_hpu_reset_trigger_wr_en          (r_req_ack_wr_en[REQ_ACK_HPU_RST_OFS]),
+      .r_hpu_reset_trigger_rd_en          (r_req_ack_rd_en[REQ_ACK_HPU_RST_OFS]),
       .r_hpu_reset_trigger                (/*UNUSED*/)
   );
 

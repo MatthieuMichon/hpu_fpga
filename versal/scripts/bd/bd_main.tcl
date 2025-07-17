@@ -102,6 +102,7 @@ proc create_root_design { parentCell ntt_psi } {
 
   # == Resets
   set resetn_usr_0_ic_0 [ create_bd_port -dir O -type rst resetn_usr_0_ic_0 ]
+  set resetn_usr_0_ic_0_gated [ create_bd_port -dir I -type rst resetn_usr_0_ic_0_gated ]
   set resetn_usr_1_ic_0 [ create_bd_port -dir O -type rst resetn_usr_1_ic_0 ]
   set pl0_resetn_0 [ create_bd_port -dir O -type rst pl0_resetn_0 ]
 
@@ -369,6 +370,7 @@ proc create_root_design { parentCell ntt_psi } {
   # == Resets
   connect_bd_net -net pl0_resetn      [get_bd_ports /pl0_resetn_0]      [get_bd_pins shell_wrapper/pl0_resetn_0]
   connect_bd_net -net resetn_usr_0_ic [get_bd_ports /resetn_usr_0_ic_0] [get_bd_pins shell_wrapper/resetn_usr_0_ic_0]
+  connect_bd_net -net resetn_usr_0_ic_gated $resetn_usr_0_ic_0_gated    [get_bd_pins shell_wrapper/resetn_usr_0_ic_0_gated]
   connect_bd_net -net resetn_usr_1_ic [get_bd_ports /resetn_usr_1_ic_0] [get_bd_pins shell_wrapper/resetn_usr_1_ic_0]
 
   # == PCIe
@@ -425,7 +427,7 @@ proc create_root_design { parentCell ntt_psi } {
   connect_bd_net -net clk_usr_1   [get_bd_pins shell_wrapper/clk_usr_1_0] \
                                         [get_bd_pins noc_wrapper/mregif_1_clk] -boundary_type upper
   connect_bd_net [get_bd_pins noc_wrapper/mregif_0_rst_n] \
-                                        [get_bd_pins shell_wrapper/resetn_usr_0_ic_0_gated] -boundary_type upper
+                                        $resetn_usr_0_ic_0_gated -boundary_type upper
   connect_bd_net [get_bd_pins noc_wrapper/mregif_1_rst_n] \
                                         [get_bd_pins shell_wrapper/resetn_usr_1_ic_0] -boundary_type upper
 

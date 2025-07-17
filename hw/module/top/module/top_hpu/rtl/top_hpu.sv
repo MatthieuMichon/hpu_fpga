@@ -135,11 +135,15 @@ module top_hpu #(
 
   /* Clock Reset --------------------------------------------------------------
   */
-  // Process clock (fast)
+  // Process clock (fast, free running)
+  logic prc_free_clk;
+  logic prc_free_srst_n;
+
+  // Process clock (fast, gated)
   logic prc_clk;
-  logic prc_clk_free; // free running version
   logic prc_ce;
   logic prc_srst_n;
+
   // Configuration clock (slow)
   logic cfg_clk;
   logic cfg_srst_n;
@@ -1825,11 +1829,12 @@ module top_hpu #(
     .pl0_ref_clk_0  (),
     .pl0_resetn_0   (),
 
-    .resetn_usr_0_ic_0(prc_srst_n),
+    .resetn_usr_0_ic_0(prc_free_srst_n),
+    .resetn_usr_0_ic_0_gated(prc_srst_n),
     .resetn_usr_1_ic_0(cfg_srst_n),
 
     .clk_usr_0_0(prc_clk),
-    .clk_usr_0_0_fr(prc_clk_free),
+    .clk_usr_0_0_fr(prc_free_clk),
     .clk_usr_1_0(cfg_clk),
     .clk_usr_0_0_ce(prc_ce),
 
@@ -1852,10 +1857,12 @@ module top_hpu #(
     .AXI4_KSK_ADD_W   (AXI4_KSK_ADD_W),
     .INTER_PART_PIPE  (INTER_PART_PIPE)
   ) hpu_3parts (
+    .prc_free_clk                  (prc_free_clk),
+    .prc_free_srst_n               (prc_free_srst_n),
+
     .prc_clk                       (prc_clk),
-    .prc_clk_free                  (prc_clk_free),
-    .prc_srst_n                    (prc_srst_n),
     .prc_ce                        (prc_ce),
+    .prc_srst_n                    (prc_srst_n),
 
     .cfg_clk                       (cfg_clk),
     .cfg_srst_n                    (cfg_srst_n),

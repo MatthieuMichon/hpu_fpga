@@ -18,8 +18,8 @@
 //
 //     set_max_delay [expr $CE_MARGIN * period] -to [get_pins clk_rst/clock_gate/CE]
 //
-// There can only be a single module in the whole design. If you replicate this block for every SLR
-// each SLR might get out of reset at different times. Still, this was designed to have margin to
+// There should only be a single module in the whole design. If you replicate this block for every SLR
+// make sure each SLR gets out of reset at the same time. Still, this was designed to have margin to
 // spare.
 //
 // Note that you'll now need to hold the reset low for HOLD_MARGIN + SETUP_MARGIN + CE_MARGIN extra

@@ -10,8 +10,8 @@
 module hpu_soft_reset (
   input  logic cfg_clk,
   input  logic cfg_srst_n,
-  input  logic prc_clk_free,
-  input  logic prc_srst_n_free,
+  input  logic prc_free_clk,
+  input  logic prc_free_srst_n,
 
   input  logic prc_clk,
   input  logic prc_srst_n,
@@ -24,6 +24,7 @@ module hpu_soft_reset (
 );
 
   typedef enum logic [1:0] {
+    XXXX = 2'bxx,
     IDLE = 0,
     ASSERT,
     DEASSERT,
@@ -33,21 +34,22 @@ module hpu_soft_reset (
   state_t stateD;
   state_t state;
 
-  logic   soft_reset_txD;
+  logic   soft_reset_tx_nD;
   logic   hpu_reset_doneD;
-  logic   soft_reset_tx;
+  logic   soft_reset_tx_n;
   logic   check_bit_rx;
 
   always_comb begin
-    hpu_reset_doneD = 1'b0;
-    soft_reset_txD  = 1'b0;
+    hpu_reset_doneD  = 1'b0;
+    soft_reset_tx_nD = 1'b1;
+    stateD           = XXXX;
     case(state)
       IDLE: begin
         stateD         = hpu_reset ? ASSERT : IDLE;
       end
       ASSERT: begin
-        stateD          = check_bit_rx ? ASSERT : DEASSERT;
-        soft_reset_txD  = check_bit_rx;
+        stateD           = check_bit_rx ? ASSERT : DEASSERT;
+        soft_reset_tx_nD = ~check_bit_rx;
       end
       DEASSERT: begin
         stateD          = check_bit_rx ? WAIT : DEASSERT;
@@ -61,25 +63,25 @@ module hpu_soft_reset (
 
   always_ff @(posedge cfg_clk) begin
     if(!cfg_srst_n) begin
-      state          <= IDLE;
-      soft_reset_tx  <= 1'b0;
-      hpu_reset_done <= 1'b0;
+      state           <= IDLE;
+      soft_reset_tx_n <= 1'b1;
+      hpu_reset_done  <= 1'b0;
     end else begin
-      state          <= stateD;
-      soft_reset_tx  <= soft_reset_txD;
-      hpu_reset_done <= hpu_reset_doneD;
+      state           <= stateD;
+      soft_reset_tx_n <= soft_reset_tx_nD;
+      hpu_reset_done  <= hpu_reset_doneD;
     end
   end
 
-  hpu_sync #(
+  xpm_cdc_single_wrapper #(
     // The frequency of the input signal is extremely low, this should be enough
-    .DEPTH   ( 2    ) ,
-    .RST_VAL ( 1'b1 )
+    .CDC_SYNC_STAGES ( 2 ) ,
+    .SRC_INPUT_REG   ( 0 )
   ) sync_cfg_prc_free (
-    .clk     ( prc_clk_free    ) ,
-    .s_rst_n ( prc_srst_n_free ) ,
-    .in      ( ~soft_reset_tx  ) ,
-    .out     ( soft_prc_srst_n )
+    .src_clk  ( cfg_clk         ) ,
+    .dest_clk ( prc_free_clk    ) ,
+    .src_in   ( soft_reset_tx_n ) ,
+    .dest_out ( soft_prc_srst_n )
   );
 
   // A reset check flag
@@ -93,14 +95,15 @@ module hpu_soft_reset (
     end
   end
 
-  hpu_sync #(
-    .DEPTH   ( 2    ) ,
-    .RST_VAL ( 1'b0 )
+  xpm_cdc_single_wrapper #(
+    // The frequency of the input signal is extremely low, this should be enough
+    .CDC_SYNC_STAGES ( 2 ) ,
+    .SRC_INPUT_REG   ( 0 )
   ) sync_prc_cfg (
-    .clk     ( cfg_clk      ) ,
-    .s_rst_n ( cfg_srst_n   ) ,
-    .in      ( check_bit_tx ) ,
-    .out     ( check_bit_rx )
+    .src_clk  ( prc_clk      ) ,
+    .dest_clk ( cfg_clk      ) ,
+    .src_in   ( check_bit_tx ) ,
+    .dest_out ( check_bit_rx )
   );
 
 endmodule

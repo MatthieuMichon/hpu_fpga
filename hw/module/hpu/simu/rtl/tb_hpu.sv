@@ -576,22 +576,23 @@ logic                                        axi4_trc_bready;
     .AXI4_KSK_ADD_W   (AXI4_KSK_ADD_W   ),
     .INTER_PART_PIPE  (INTER_PART_PIPE  )
   ) dut (
-    .prc_clk_free  (clk    ),
-    .prc_srst_n    (s_rst_n),
+    .prc_free_clk    (clk        ) ,
+    .prc_free_srst_n (s_rst_n    ) ,
 
-    .prc_ce        (clk_ce ),
-    .prc_clk       (clk_g  ),
+    .prc_clk         (clk_g      ) ,
+    .prc_ce          (clk_ce     ) ,
+    .prc_srst_n      (/*UNUSED*/ ) ,
 
-    .cfg_clk       (cfg_clk  ),
-    .cfg_srst_n    (cfg_srst_n),
+    .cfg_clk         (cfg_clk    ) ,
+    .cfg_srst_n      (cfg_srst_n ) ,
 
-    .isc_dop       (isc_dop),
-    .isc_dop_rdy   (isc_dop_rdy),
-    .isc_dop_vld   (isc_dop_vld),
+    .isc_dop         (isc_dop    ) ,
+    .isc_dop_rdy     (isc_dop_rdy) ,
+    .isc_dop_vld     (isc_dop_vld) ,
 
-    .isc_ack       (isc_ack),
-    .isc_ack_rdy   (isc_ack_rdy),
-    .isc_ack_vld   (isc_ack_vld),
+    .isc_ack         (isc_ack    ) ,
+    .isc_ack_rdy     (isc_ack_rdy) ,
+    .isc_ack_vld     (isc_ack_vld) ,
 
     `AXIL_INSTANCE(s_axil_prc_1in3,tb_axil_prc,[P1_OFS])
     `AXIL_INSTANCE(s_axil_cfg_1in3,tb_axil_cfg,[P1_OFS])
@@ -1156,7 +1157,6 @@ begin
   gen_cfg_axil_loop[P3_OFS].maxil_drv_if.write_trans(HPU_RESET_TRIGGER_OFS, 1);
   for(rdata = '0; !rdata[REG_DATA_W-1];)
     gen_cfg_axil_loop[P3_OFS].maxil_drv_if.read_trans(HPU_RESET_TRIGGER_OFS, rdata);
-  gen_cfg_axil_loop[P3_OFS].maxil_drv_if.write_trans(HPU_RESET_TRIGGER_OFS, 0);
 end
 endtask
 

@@ -57,7 +57,7 @@ offset= 0x100
 [section.hpu_reset.register.trigger]
   description="A soft reset for the whole HPU reconfigurable logic"
   owner="Kernel"
-  read_access="Read"
+  read_access="ReadNotify"
   write_access="WriteNotify"
   field.request = { size_b=1, offset_b=0 ,  default={Cst=0}, description="request"}
   field.done    = { size_b=1, offset_b=31 , default={Cst=0}, description="done"}

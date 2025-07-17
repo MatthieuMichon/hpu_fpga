@@ -1,8 +1,8 @@
 // ============================================================================================== //
 // Description  : Axi4-lite register bank
 // This file was generated with rust regmap generator:
-//  * Date:  2025-07-02
-//  * Tool_version: 9bab20def30cfd61d2ed40616bd05d08a747ddf4
+//  * Date:  2025-07-17
+//  * Tool_version: bb0db737792da6b81e69a039028c971af1627fe2
 // ---------------------------------------------------------------------------------------------- //
 // xR[n]W[na]
 // |-> who is in charge of the register update logic : u -> User
@@ -122,6 +122,7 @@ import hpu_regif_core_cfg_3in3_pkg::*;
   // Register IO: hpu_reset_trigger
     , output hpu_reset_trigger_t r_hpu_reset_trigger
         , input hpu_reset_trigger_t r_hpu_reset_trigger_upd
+        , output logic r_hpu_reset_trigger_rd_en
     , output logic r_hpu_reset_trigger_wr_en
 );
 // ============================================================================================== --
@@ -731,14 +732,14 @@ import hpu_regif_core_cfg_3in3_pkg::*;
   assign r_hpu_reset_trigger_wr_enD = wr_en_ok && (wr_add[AXIL_ADD_RANGE_W-1:0] == HPU_RESET_TRIGGER_OFS[AXIL_ADD_RANGE_W-1:0]);
   always_ff @(posedge clk) begin
     if (!s_rst_n) begin
-      r_hpu_reset_trigger       <= hpu_reset_trigger_default;
       r_hpu_reset_trigger_wr_en <= 1'b0;
     end
     else begin
-      r_hpu_reset_trigger       <= r_hpu_reset_triggerD;
       r_hpu_reset_trigger_wr_en <= r_hpu_reset_trigger_wr_enD;
     end
   end
+  assign r_hpu_reset_trigger_rd_en = rd_en_ok && (rd_add[AXIL_ADD_RANGE_W-1:0] == HPU_RESET_TRIGGER_OFS[AXIL_ADD_RANGE_W-1:0]);
+  assign r_hpu_reset_trigger = r_hpu_reset_trigger_upd;
 // ============================================================================================== --
 // Read reg
 // ============================================================================================== --

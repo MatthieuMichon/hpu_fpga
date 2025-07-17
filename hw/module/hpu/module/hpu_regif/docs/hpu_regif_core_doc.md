@@ -1,6 +1,6 @@
 # HPU_REGIF_CORE documentation
-**Date**: 2025-07-02
-**Tool Version**: 9bab20def30cfd61d2ed40616bd05d08a747ddf4
+**Date**: 2025-07-17
+**Tool Version**: bb0db737792da6b81e69a039028c971af1627fe2
 
 ## RegisterMap Overview
 
@@ -3494,7 +3494,7 @@ Below is a summary of all the registers in the current section hpu_reset:
 
 - **Description**: A soft reset for the whole HPU reconfigurable logic
 - **Owner**: Kernel
-- **Read Access**: Read
+- **Read Access**: ReadNotify
 - **Write Access**: WriteNotify
 - **Offset**: 0x20100
 - **Default**: C.f. fields
