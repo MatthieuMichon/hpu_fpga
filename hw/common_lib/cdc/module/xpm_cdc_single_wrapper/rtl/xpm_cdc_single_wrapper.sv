@@ -1,28 +1,31 @@
-// ============================================================================================== //
+// ==============================================================================================
+// BSD 3-Clause Clear License
+// Copyright © 2025 ZAMA. All rights reserved.
+// ==============================================================================================
 // Description  : Simple Synchronizer using XPM module
-// ---------------------------------------------------------------------------------------------- //
+// ----------------------------------------------------------------------------------------------
 //
 // Wrapper around the XPM synchronizer cell.
 //
 // Documentation about XPM module can be found here :
 // https://docs.amd.com/r/en-US/ug1353-versal-architecture-ai-libraries/XPM_CDC_SINGLE
 //
-// ============================================================================================== //
+// ==============================================================================================
 
 module xpm_cdc_single_wrapper #(
-  // Synchronization stages -----------------------------------------------------------------------
+  // Synchronization stages ---------------------------------------------------------------------
   // Specifies the number of synchronization stages on the CDC path.
   // For proper operation, the input data must be sampled two or more times by destination clock.
   parameter int CDC_SYNC_STAGES  = 2,
   // Input stage
   parameter int SRC_INPUT_REG    = 0,
 
-  // Behavioral simulation ------------------------------------------------------------------------
+  // Behavioral simulation ----------------------------------------------------------------------
   // 0 = disable simulation init values
   // 1 = enable simulation init values
   parameter int INIT_SYNC_FF      = 0,
 
-  // Simulation asserts flag ----------------------------------------------------------------------
+  // Simulation asserts flag --------------------------------------------------------------------
   parameter int SIM_ASSERT_CHK    = 0
   )(
   // Clock
