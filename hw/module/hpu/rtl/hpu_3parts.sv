@@ -206,7 +206,7 @@ module hpu_3parts
     .rst_out ( prc_srst_n_part[0] )
   );
 
-  assign prc_srst_n = prc_srst_n_part[1];
+  assign prc_srst_n = prc_srst_n_part[2];
 
 //=====================================
 // Fifo element
