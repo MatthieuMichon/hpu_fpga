@@ -1,5 +1,5 @@
 # HPU_REGIF_CORE documentation
-**Date**: 2025-07-17
+**Date**: 2025-07-28
 **Tool Version**: bb0db737792da6b81e69a039028c971af1627fe2
 
 ## RegisterMap Overview
@@ -30,7 +30,6 @@ Below is a summary of all the registers in the current register map:
 | [info](#section-info) | 0x10 | 0x4c | RTL architecture parameters |
 | [hbm_axi4_addr_1in3](#section-hbm-axi4-addr-1in3) | 0x1000 | 0xa0 | HBM AXI4 connection address offset |
 | [bpip](#section-bpip) | 0x2000 | 0x8 | BPIP configuration |
-| [keyswitch](#section-keyswitch) | 0x3000 | 0x4 | Keyswitch Configuration |
 | [entry_prc_1in3](#section-entry-prc-1in3) | 0x10000 | 0x10 | entry_prc_1in3 section with known value used for debug. |
 | [status_1in3](#section-status-1in3) | 0x10010 | 0x4 | HPU status of part 1in3 |
 | [ksk_avail](#section-ksk-avail) | 0x11000 | 0x8 | KSK availability configuration |
@@ -1268,45 +1267,6 @@ Register use contains following Sub-fields:
 - **Offset**: 0x2004
 - **Default**: 4294967295
 
-
-
-
----
-
-
-
-
-## Section keyswitch
-
-### Register Overview
-
-Below is a summary of all the registers in the current section keyswitch:
-
-| Name             | Offset | Access | Description |
-|-----------------:|:------:|:------:|:------------|
-| [config](#register-keyswitchconfig) | 0x3000 | RW |  (1) Use use modulus switching mean compensation. (default), (0) Don't use modulus switching mean compensation. |
-
-
----
-
-
-### Register keyswitch.config
-
-- **Description**: (1) Use use modulus switching mean compensation. (default), (0) Don't use modulus switching mean compensation.
-- **Owner**: User
-- **Read Access**: Read
-- **Write Access**: Write
-- **Offset**: 0x3000
-- **Default**: C.f. fields
-
-
-#### Field Details
-
-Register config contains following Sub-fields:
-
-| Field Name | Offset_b | Size_b | Default      | Description   |
-|-----------:|:--------:|:------:|:------------:|:--------------|
-| mod_switch_mean_comp      | 0 | 1 |1| Controls whether to use modulus switch mean compensation. |
 
 
 

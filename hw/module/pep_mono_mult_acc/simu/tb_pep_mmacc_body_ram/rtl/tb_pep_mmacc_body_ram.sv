@@ -416,7 +416,10 @@ module tb_pep_mmacc_body_ram;
   end
 
   function ks_coeff_t center(input ks_coeff_t value); // For the shifted modulo switch
-    return (value - (MOD_KSK / (2*2*N))) % MOD_KSK;
+    if (USE_MEAN_COMP)
+      return (value - (MOD_KSK / (2*2*N))) % MOD_KSK;
+    else
+      return value;
   endfunction
 
   function modsw_coeff_t mod_switch(input real value);

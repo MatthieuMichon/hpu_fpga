@@ -136,7 +136,14 @@ module pep_mmacc_body_ram
   logic                  ram_wr_parity;
 
   logic [MOD_KSK_W-1:0]  sm1_wr_data_centered;
-  assign sm1_wr_data_centered = sm1_wr_data - CENTER_CORR;
+  generate
+    if (USE_MEAN_COMP) begin : gen_use_mean_comp
+      assign sm1_wr_data_centered = sm1_wr_data - CENTER_CORR;
+    end
+    else begin : gen_no_use_mean_comp
+      assign sm1_wr_data_centered = sm1_wr_data;
+    end
+  endgenerate
 
   always_ff @(posedge clk)
     if (!s_rst_n) ram_wr_en <= 1'b0;

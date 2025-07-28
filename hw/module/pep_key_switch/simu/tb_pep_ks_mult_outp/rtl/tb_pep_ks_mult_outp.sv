@@ -30,8 +30,6 @@ module tb_pep_ks_mult_outp;
 
   parameter  int BATCH_IN_PARALLEL = TOTAL_BATCH_NB;
 
-  parameter  bit USE_MEAN_COMPENSATION = 1'b0;
-
   localparam int OUT_FIFO_DEPTH = 4;
   localparam int DROP_COL_NB    = LBX == 1 ? 0 : (LBX - (LWE_K_P1 % LBX)) % LBX;
   initial begin
@@ -216,8 +214,6 @@ module tb_pep_ks_mult_outp;
     .br_bfifo_data         (br_bfifo_data),
     .br_bfifo_pid          (/*UNUSED*/), // Not tested here
     .br_bfifo_parity       (/*UNUSED*/), // Not tested here
-
-    .mod_switch_mean_comp  (USE_MEAN_COMPENSATION),
 
     .reset_cache           (reset_cache),
     .outp_ks_loop_done_mh  (outp_ks_loop_done_mh),
@@ -779,7 +775,7 @@ module tb_pep_ks_mult_outp;
           mult_res_org = 0 - mult_res_org;
           mult_res = (mult_res_org >> (OP_W-LWE_COEF_W)) + mult_res_org[OP_W-LWE_COEF_W-1]; // mod switch
 
-          if (USE_MEAN_COMPENSATION)
+          if (USE_MEAN_COMP)
             corr_res = mult_res_org - (mult_res << (OP_W-LWE_COEF_W));
           else
             corr_res = '0;

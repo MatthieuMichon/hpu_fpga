@@ -49,9 +49,6 @@ module pep_ks_out_process
   // reset cache
   input  logic                                          reset_cache,
 
-  // Config (quasi static)
-  input  logic                                          mod_switch_mean_comp,
-
   // BCOL done
   output logic [TOTAL_BATCH_NB-1:0]                     outp_ks_loop_done_mh,
   output logic [TOTAL_BATCH_NB-1:0]                     inc_ksk_rd_ptr
@@ -357,7 +354,7 @@ module pep_ks_out_process
         assign s1_lwe_mdsw = s1_lwe_coef[OP_W-1-:LWE_COEF_W] + s1_lwe_coef[OP_W-1-LWE_COEF_W];
 
         logic [KS_MAX_ERROR_W-1:0] s1_lwe_mod_switch_err; // signed
-        assign s1_lwe_mod_switch_err  = s1_mask_avail && mod_switch_mean_comp ?
+        assign s1_lwe_mod_switch_err  = s1_mask_avail && USE_MEAN_COMP ?
                                         KS_MAX_ERROR_W'(s1_lwe_coef[ABS_ERROR_W-1:0])
                                       - KS_MAX_ERROR_W'((s1_lwe_coef[ABS_ERROR_W-1] << ABS_ERROR_W))
                                       : '0;
