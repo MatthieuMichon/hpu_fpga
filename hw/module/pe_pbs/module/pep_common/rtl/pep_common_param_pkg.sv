@@ -95,6 +95,7 @@ package pep_common_param_pkg;
   // Mean correction related
   localparam logic [127:0] KS_MAX_ABS_ERROR = (2**(MOD_KSK_W - LWE_COEF_W - 1) * LWE_K);
   localparam int unsigned KS_MAX_ERROR_W    = unsigned'($clog2(KS_MAX_ABS_ERROR+1) + 1); // The mod_switch_error is signed
+  localparam int KS_CORR_W = MOD_KSK_W - LWE_COEF_W + 2; // 1 additional bit + 1 sign bit (2s complement)
 
   // The KS key mean is encoded in fixed point. The final encoded value is:
   //  KS_KEY_MEAN * 2**-KS_KEY_MEAN_F
@@ -145,7 +146,7 @@ package pep_common_param_pkg;
   localparam int KS_CMD_W = $bits(ks_cmd_t);
 
   typedef struct packed {
-    logic [BATCH_PBS_NB-1:0][KS_MAX_ERROR_W-1:0] corr_a;
+    logic [BATCH_PBS_NB-1:0][KS_CORR_W-1:0]  corr_a;
     logic [BATCH_PBS_NB-1:0][LWE_COEF_W-1:0] lwe_a;
     logic [LWE_K_P1_W-1:0]                   ks_loop;
     pointer_t                                wp;

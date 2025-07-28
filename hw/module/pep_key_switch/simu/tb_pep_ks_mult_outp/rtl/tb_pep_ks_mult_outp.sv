@@ -139,7 +139,7 @@ module tb_pep_ks_mult_outp;
 
   // LWE coeff
   logic [TOTAL_BATCH_NB-1:0][LWE_COEF_W-1:0]  br_proc_lwe;
-  logic [TOTAL_BATCH_NB-1:0][KS_MAX_ERROR_W-1:0] br_proc_corr; // mean compensation correction
+  logic [TOTAL_BATCH_NB-1:0][KS_CORR_W-1:0]   br_proc_corr; // mean compensation correction
   logic [TOTAL_BATCH_NB-1:0]                  br_proc_vld;
   logic [TOTAL_BATCH_NB-1:0]                  br_proc_rdy;
 
@@ -719,7 +719,7 @@ module tb_pep_ks_mult_outp;
   logic [OP_W-1:0] out_body_q     [TOTAL_BATCH_NB-1:0][$];
   logic [OP_W-1:0] br_bfifo_data_q[TOTAL_BATCH_NB-1:0][$];
   logic [LWE_COEF_W-1:0] br_proc_lwe_q  [TOTAL_BATCH_NB-1:0][$];
-  logic [KS_MAX_ERROR_W-1:0] br_proc_corr_q  [TOTAL_BATCH_NB-1:0][$];
+  logic [KS_CORR_W-1:0]  br_proc_corr_q [TOTAL_BATCH_NB-1:0][$];
 
   always_ff @(posedge clk)
     if (in_run_column && in_bline_cnt==0 && in_bcol_cnt==0 && in_lvl_cnt==0) begin
@@ -763,8 +763,8 @@ module tb_pep_ks_mult_outp;
             || ((out_x_cnt[b] == LWE_K-1) && mult_res_q[x_col][b].size() > pbs_nb*(1 + DROP_COL_NB)))) begin
           logic [OP_W-1:0]       mult_res_org;
           logic [OP_W-1:0]       mult_res;
-          logic [KS_MAX_ERROR_W-1:0] corr_res;
-          logic [KS_MAX_ERROR_W-1:0] br_proc_corr_res;
+          logic [KS_CORR_W-1:0]  corr_res;
+          logic [KS_CORR_W-1:0]  br_proc_corr_res;
           logic [LWE_COEF_W-1:0] br_proc_res;
 
           mult_res_org = mult_res_q[x_col][b].pop_front();

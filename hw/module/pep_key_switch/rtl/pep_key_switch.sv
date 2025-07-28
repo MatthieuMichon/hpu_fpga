@@ -119,7 +119,7 @@ module pep_key_switch
   logic [TOTAL_BATCH_NB-1:0]                   outp_ks_loop_done_mh;
 
   logic [LWE_COEF_W-1:0]                       br_proc_lwe;
-  logic [KS_MAX_ERROR_W-1:0]                   br_proc_corr;
+  logic [KS_CORR_W-1:0]                        br_proc_corr;
   logic                                        br_proc_vld;
   logic                                        br_proc_rdy;
 
