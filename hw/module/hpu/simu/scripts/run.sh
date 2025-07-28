@@ -953,7 +953,6 @@ if [ $GEN_STIMULI -eq 1 ] ; then
                 --dop_implementation $DOP_IMPLEM \
                 $gen_cfg_args \
                 -o ${INPUT_DIR}/hpu_cfg.toml \
-                -m $USE_MEAN_COMP \
                 -f"
   echo "INFO> Running $gen_cfg_cmd"
   $gen_cfg_cmd || exit 1
