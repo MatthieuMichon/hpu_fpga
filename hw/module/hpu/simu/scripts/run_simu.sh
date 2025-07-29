@@ -207,6 +207,9 @@ for ((j = 0; j < 1; j++)); do
     USE_BPIP_OPPORTUNISM=0
   fi
 
+  # TODO : remove this, once the sw is ready
+  USE_MEAN_COMP=1
+
   cmd="${SCRIPT_DIR}/run.sh \
                   -C \
                   -R $R \
