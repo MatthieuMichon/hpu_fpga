@@ -991,6 +991,7 @@ if [ $GEN_STIMULI -eq 1 ] ; then
                 -bsk_bytes_w $AXI_DATA_BYTES \
                 -ksk_bytes_w $AXI_DATA_BYTES \
                 -isc_depth $ISC_DEPTH \
+                -use_mean_comp $USE_MEAN_COMP \
                 $ntt_cut_arg \
                 -z $DELTA \
                 -o ${INPUT_DIR}/hpu_mockup_cfg.toml \
