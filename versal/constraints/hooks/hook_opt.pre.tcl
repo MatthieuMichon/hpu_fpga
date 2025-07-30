@@ -65,7 +65,7 @@ set_property PARENT pblock_SLR1 [get_pblocks {pblock_SLL1TOP pblock_SLL1BOT}]
 set_property PARENT pblock_SLR0 [get_pblocks {pblock_SLL0TOP pblock_CLKROOT}]
 set_property PARENT pblock_pl [get_pblocks pblock_SLR0] [get_pblocks pblock_SLR1] [get_pblocks pblock_SLR2]
 
-set_property IS_SOFT FALSE [get_pblocks pblock*]
+set_property IS_SOFT TRUE [get_pblocks pblock*]
 
 #################################################################################################
 #                                            IMPORTANT:

@@ -78,13 +78,9 @@ proc import_all { } {
   import_files -fileset utils_1   -norecurse "$constraints_path/hooks/hook_route.post.tcl"
   import_files -fileset utils_1   -norecurse "$constraints_path/hooks/hook_write_device_image.pre.tcl"
 
-  set_property STEPS.SYNTH_DESIGN.ARGS.NO_SRLEXTRACT true                               [get_runs synth_1]
   set_property STEPS.SYNTH_DESIGN.TCL.PRE       [get_files *syn.pre.tcl]                [get_runs synth_1]
   set_property STEPS.SYNTH_DESIGN.TCL.POST      [get_files *syn.post.tcl]               [get_runs synth_1]
-  set_property strategy Performance_HighUtilSLRs                                        [get_runs impl_1]
-  set_property STEPS.PLACE_DESIGN.ARGS.DIRECTIVE AggressiveExplore                      [get_runs impl_1]
-  set_property STEPS.PHYS_OPT_DESIGN.ARGS.DIRECTIVE AggressiveExplore                   [get_runs impl_1]
-  set_property STEPS.ROUTE_DESIGN.ARGS.DIRECTIVE AggressiveExplore                      [get_runs impl_1]
+  set_property strategy Performance_AggressiveExplore                                   [get_runs impl_1]
   set_property STEPS.OPT_DESIGN.TCL.PRE         [get_files *opt.pre.tcl]                [get_runs impl_1]
   set_property STEPS.OPT_DESIGN.TCL.POST        [get_files *opt.post.tcl]               [get_runs impl_1]
   set_property STEPS.PLACE_DESIGN.TCL.PRE       [get_files *place.pre.tcl]              [get_runs impl_1]
