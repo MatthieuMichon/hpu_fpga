@@ -341,7 +341,7 @@ module hpu_3parts
   generate
     if (INTER_PART_PIPE > 0) begin : gen_inter_part_pipe
       // ----------------------------------------------------------------------------------------- //
-      // Interpart Resetable output flops
+      // Interpart Resettable output flops
       // ----------------------------------------------------------------------------------------- //
       // Part 1
       always_ff @(posedge prc_clk)

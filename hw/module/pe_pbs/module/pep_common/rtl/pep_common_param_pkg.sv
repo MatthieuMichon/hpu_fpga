@@ -103,7 +103,7 @@ package pep_common_param_pkg;
   localparam int unsigned KS_KEY_MEAN_W = 1;
   localparam int unsigned KS_KEY_MEAN_F = 1; // Fixed point location index
   localparam int unsigned KS_KEY_MEAN   = KS_KEY_MEAN_R * (1 << KS_KEY_MEAN_F);
-  // Note: An implicit convertion from a floating point value to an integer is implicitly
+  // Note: An implicit conversion from a floating point value to an integer is implicitly
   // rounded as stated in the system verilog standard.
   // "Implicit conversion shall take place when a real number is assigned to an integer. The ties
   // shall be rounded away from zero."

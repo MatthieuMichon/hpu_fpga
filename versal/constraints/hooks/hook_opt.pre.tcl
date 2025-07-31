@@ -88,7 +88,7 @@ set_multicycle_path [expr 2*$rst_setup_hold_margin-1] -hold -from $rst_pin
 # We need also a max delay on the clock gate input pin. Cannot be a multicycle path this time
 # because the path is not timed. The design is made to absorb a controllable amount of latency on
 # that path, but we still need a constraint.
-set clk_period [get_propert PERIOD [get_clocks prc_clk]]
+set clk_period [get_property PERIOD [get_clocks prc_clk]]
 set_max_delay [expr $clk_period*$ce_delay_margin] -from [get_pins hpu_3parts/prc3_clk_rst/clk_en_reg/C] \
                                                   -to   [get_pins -hier -regexp -filter \
                                                         {NAME =~ .*/clock_primitive_inst/BUFGCE.*/CE}]
