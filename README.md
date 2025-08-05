@@ -131,7 +131,7 @@ To use the HPU FPGA project, ensure the following tools and dependencies are ins
 - [**tfhe-rs**](https://github.com/zama-ai/tfhe-rs/) >= 1.2.0.
 - **Host linux driver**: [AVED fork](https://github.com/zama-ai/AVED).
 - **DMA linux driver**: [QDMA fork](https://github.com/zama-ai/dma_ip_drivers).
-- [**Vivado/Vitis**](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vivado-design-tools/2024-2.html) = **2024.2**.
+- [**Vivado/Vitis**](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vivado-design-tools/2025-1.html) = **2025.1**.
 - [**just**](https://github.com/casey/just) >= 1.37.0.
 - *(simulation only)* [**Sage**](https://sagemanifolds.obspm.fr/install_ubuntu.html) = 10.4.
 - *(firmware compilation)* [**CMake**](https://cmake.org/download/) >= 3.3.0.
@@ -290,7 +290,9 @@ ${PROJECT_DIR}/fw/ublaze/script/generate_core.sh
 >
 > We assume that the user has already used a V80 board and knows its basic usage.<br>
 > We assume that the [flash](https://xilinx.github.io/AVED/latest/AVED%2BUpdating%2BFPT%2BImage%2Bin%2BFlash.html) has already been correctly programmed and the example design [is in partition 0](https://xilinx.github.io/AVED/latest/AVED%2BUpdating%2BDesign%2BPDI%2Bin%2BFlash.html)<br>
-> We recommend not to update the V80 board flash content as tfhe-hpu-backend can dynamically load your bitstream via PCIe. But if you really need to put your bitstream in flash, we recommend to use partition 1 for your freshly generated pdi. This will enable you to fallback on partition 0 after a reboot.
+> We recommend not to update the V80 board flash content as tfhe-hpu-backend can dynamically load your bitstream via PCIe. \
+> ***(Vivado 2024.2)** If you really need to put your bitstream in flash, we recommend to use partition 1 for your freshly generated pdi. This will enable you to fallback on partition 0 after a reboot.* \
+> ***(Vivado 2025.1)** If you really need to put your bitstream in flash, you will have to write your bitstream in partition 0, in order to be able to cold reboot on partition 0 with your bitstream.*
 
 > [!WARNING]
 >
@@ -371,6 +373,12 @@ sudo make install-mods
 ### FPGA loading
 
 #### Loading through OSPI flash
+
+> [!WARNING]
+> Loading the FPGA though the FLASH is not fully integrated with 2025.1 but is fully supported with 2024.2\
+> If ever you generate a bitstream with Vivado 2025.1: you will be able to use the flash, after programming you will have to cold reboot your machine and won't be able to boot from partition to partition. \
+> For now, in 2025.1, programming through the flash is not meant for runtime but rather to have fallback options on partition 0.
+
 There are two file types resulting from `run_syn_hpu_3parts_psi64.sh` bitstream generation, in directory `${PROJECT_DIR}/versal/output_psi64`: bitstream `*.pdi` and shell archive `hpu_plug.xsa`.\
 Note that if you use another given script (for another HPU size), the output directory will be `${PROJECT_DIR}/versal/output_psi<size\>`.
 
