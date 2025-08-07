@@ -364,7 +364,7 @@ sudo cp zama_qdma/QDMA/linux-kernel/scripts/42-qdma.rules /etc/udev/rules.d/
 udevadm control --reload-rules && udevadm trigger
 
 cd zama_qdma/QDMA/linux-kernel/
-make
+TANDEM_BOOT_SUPPORTED=1 make
 
 # install kernel module in your machine
 sudo make install-mods
