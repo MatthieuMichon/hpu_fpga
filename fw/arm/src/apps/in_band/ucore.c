@@ -140,7 +140,7 @@ uint32_t get_lookup(IOpHeader_t header, Lookup_t* lookup){
   // Read translation offset for the given entry
   // Offset is computed based on max blk_width to correctly handle asym IOp such as Cmp
   uint8_t max_align = (header.header.dst_align > header.header.src_align)? header.header.dst_align: header.header.src_align;
-  if (max_align == 0 || max_align > 127) {
+  if (max_align > 127) {
     PLL_ERR("get_lookup", "max_align is wrong src %d dst %d", header.header.src_align, header.header.dst_align);
     lookup->len = 0;
     lookup->ptr = NULL;
