@@ -292,7 +292,7 @@ proc main { } {
   global PROJECT_DIR
   global SKIP_PRJ_SHELL
 
-  if {$STEP eq "new"} {
+  if {$STEP eq "new" || $STEP eq "gen"} {
     create_project prj "$OUTDIR/${TOP_NAME}" -part $XIL_PART -force
   } else {
     open_project "${OUTDIR}/${TOP_NAME}/prj.xpr"
@@ -323,6 +323,17 @@ proc main { } {
     reimport_files -force
     reset_run impl_1
     implementation $ntt_psi
+  } elseif {$STEP eq "gen"} {
+    import_all
+    # create_shell.tcl needs arguments that are passed with argc and argv.
+    set argv $::argv
+    set argc $::argc
+    set ::argv [list $ntt_psi]
+    set ::argc 1
+    source "$PROJECT_DIR/versal/scripts/create_shell.tcl"
+    set ::argv $argv
+    set ::argc $argc
+    write_hw_platform -force -fixed -minimal "$OUTDIR/${SHELL_VER}.xsa"
   } else {
     puts "ERROR: unknown step have been chosen by user"
     exit 1
