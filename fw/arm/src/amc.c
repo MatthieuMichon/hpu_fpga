@@ -544,7 +544,7 @@ static void vTaskFuncMain( void )
             }
         }
         // Give hand back to scheduler for other tasks
-        iOSAL_Task_SleepTicks(20);
+        iOSAL_Task_SleepTicks(1);
     }
 }
 
