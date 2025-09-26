@@ -35,16 +35,18 @@ package pep_common_param_pkg;
   export pep_batch_definition_pkg::BATCH_NB;
   // Total number of batches
   export pep_batch_definition_pkg::TOTAL_BATCH_NB;
+  // Total number of GRAMs
+  export pep_batch_definition_pkg::GRAM_NB;
 
 //==================================================
 // Parameters
 //==================================================
-  localparam int GRAM_NB           = 4; // 4 due to the number of access actors. The design only supports power of 2
-                                        // MSPLIT_DIV should divide this value
   localparam int GRAM_ID_W         = $clog2(GRAM_NB) == 0 ? 1 : $clog2(GRAM_NB);
 
   localparam int RANK_NB           = BATCH_PBS_NB / GRAM_NB;
   localparam int RANK_W            = $clog2(RANK_NB) == 0 ? 1 : $clog2(RANK_NB);
+  localparam int PID_GRP_NB        = TOTAL_PBS_NB / GRAM_NB;
+  localparam int PID_GRP_W         = $clog2(PID_GRP_NB) == 0 ? 1 : $clog2(PID_GRP_NB);
   localparam int GRAM_NB_W         = $clog2(GRAM_NB) == 0 ? 1 : $clog2(GRAM_NB);
   localparam int GRAM_NB_SZ        = $clog2(GRAM_NB);
 
@@ -118,8 +120,14 @@ package pep_common_param_pkg;
   localparam int BR_BATCH_CMD_W = $bits(br_batch_cmd_t);
 
   typedef struct packed {
-    logic [GID_W-1:0] gid;
-    logic [PID_W-1:0] pid;
+    logic [PID_W-1:0]     pid;
+    logic [PID_GRP_W-1:0] grof;
+    logic [GRAM_ID_W-1:0] grid;
+  } pid_t;
+
+  typedef struct packed {
+    logic [GID_W-1:0]     gid;
+    pid_t                 pid;
   } load_glwe_cmd_t;
 
   localparam int LOAD_GLWE_CMD_W = $bits(load_glwe_cmd_t);
@@ -163,7 +171,7 @@ package pep_common_param_pkg;
     logic [LOG_LUT_NB_W-1:0] log_lut_nb;
     logic [RID_W-1:0]        dst_rid;
     logic [LWE_COEF_W-1:0]   lwe;
-    logic [PID_W-1:0]        pid;
+    pid_t                    pid;
   } map_elt_t;
 
   localparam int MAP_ELT_W = $bits(map_elt_t);

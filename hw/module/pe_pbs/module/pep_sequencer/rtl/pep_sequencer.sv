@@ -136,7 +136,7 @@ module pep_sequencer
     logic [LOG_LUT_NB_W-1:0]   log_lut_nb;
     logic                      br_loop_c; // start loop parity
     logic [LWE_K_W-1:0]        br_loop; // start loop index
-    logic [PID_W-1:0]          pid;
+    pid_t                      pid;
   } ct_info_t;
 
   localparam int CT_INFO_W = $bits(ct_info_t);
@@ -402,7 +402,7 @@ module pep_sequencer
       for (int i=0; i<TOTAL_PBS_NB; i=i+1) begin
         ct_info_t c;
         c       = 'x;
-        c.pid   = i;
+        c.pid   = '{i, i / GRAM_NB, i % GRAM_NB};
         c.avail = 1'b0;
         ct_pool[i] <= c;
       end
@@ -477,8 +477,10 @@ module pep_sequencer
   assign s0_ldb_cmd_vld = s0_load_ct_tmp & s0_ldg_cmd_rdy;
   assign s0_inst_rdy    = ~pool_full & s0_ldg_cmd_rdy & s0_ldb_cmd_rdy;
 
-  assign s0_ldg_cmd.gid = s0_inst.gid;
-  assign s0_ldg_cmd.pid = pool_wp.pt;
+  assign s0_ldg_cmd.gid      = s0_inst.gid;
+  assign s0_ldg_cmd.pid.pid  = pool_wp.pt;
+  assign s0_ldg_cmd.pid.grof = pool_wp.pt / GRAM_NB;
+  assign s0_ldg_cmd.pid.grid = pool_wp.pt % GRAM_NB;
 
   assign s0_ldb_cmd.src_rid = s0_inst.src_rid;
   assign s0_ldb_cmd.pid     = pool_wp.pt;
@@ -1246,8 +1248,8 @@ module pep_sequencer
   always_comb
     for (int i=0; i<RANK_NB; i=i+1)
       for (int j=0; j<GRAM_NB; j=j+1) begin
-        r1_map_tmp[i][j].pid     = r1_pool_wrap[i][j].pid;
-        r1_map_tmp[i][j].avail   = r1_pool_wrap[i][j].avail; // Note : if not avail, this has been set to 0 by the mask.
+        r1_map_tmp[i][j].pid            = r1_pool_wrap[i][j].pid;
+        r1_map_tmp[i][j].avail          = r1_pool_wrap[i][j].avail; // Note : if not avail, this has been set to 0 by the mask.
         r1_map_tmp[i][j].br_loop_parity = r1_pool_wrap[i][j].br_loop_c;
         r1_map_tmp[i][j].last           = r1_pool_wrap[i][j].br_loop == pbs_in_last_loop;
         r1_map_tmp[i][j].first          = r1_pool_wrap[i][j].br_loop == pbs_in_loop;
@@ -1257,7 +1259,7 @@ module pep_sequencer
 
         r1_corr_map[i][j].avail         = r1_pool_wrap[i][j].avail;
         r1_corr_map[i][j].corr          = r1_pool_wrap[i][j].corr;
-        r1_corr_map[i][j].pid           = r1_pool_wrap[i][j].pid;
+        r1_corr_map[i][j].pid           = r1_pool_wrap[i][j].pid.pid;
       end
 
   // Rotate

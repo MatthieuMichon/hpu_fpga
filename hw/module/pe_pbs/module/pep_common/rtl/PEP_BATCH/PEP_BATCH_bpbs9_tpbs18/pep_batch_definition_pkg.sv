@@ -13,7 +13,7 @@
 package pep_batch_definition_pkg;
   import common_definition_pkg::*;
 
-  localparam int GRAM_NB = 4; // This value is the one that better overlaps the read and
+  localparam int GRAM_NB = 3; // This value is the one that better overlaps the read and
                               // write processes in the mmacc. Doesn't have to be a
                               // power of two.
 
@@ -23,12 +23,12 @@ package pep_batch_definition_pkg;
 
   // Maximum number of processed PBS per batch.
   // The optimal value depend on the NTT architecture and the keys loading bandwidth.
-  // In HPU should be a multiple of GRAM_NB = 4.
-  localparam int BATCH_PBS_NB = 8;
+  // In HPU should be a multiple of GRAM_NB = 3.
+  localparam int BATCH_PBS_NB = 9;
 
   // Total number of PBS that can be stored in HPU.
-  // In HPU should be a multiple of GRAM_NB = 4.
+  // In HPU should be a multiple of GRAM_NB = 3.
   // Is >= BATCH_PBS_NB.
-  localparam int TOTAL_PBS_NB = 32;
+  localparam int TOTAL_PBS_NB = 18;
 
 endpackage

@@ -460,7 +460,7 @@ module pep_mmacc_splitc_main
   assign sfifo_in_vld      = sfifo_in_vld_tmp & bfifo_in_rdy;
   assign bfifo_in_vld      = sfifo_in_vld_tmp & sfifo_in_rdy;
   assign sfifo_in_rdy_tmp  = bfifo_in_rdy & sfifo_in_rdy;;
-  assign bfifo_in_pid      = sfifo_in_icmd.map_elt.pid;
+  assign bfifo_in_pid      = sfifo_in_icmd.map_elt.pid.pid;
   assign bfifo_in_parity   = sfifo_in_icmd.map_elt.br_loop_parity;
 
 // pragma translate_off

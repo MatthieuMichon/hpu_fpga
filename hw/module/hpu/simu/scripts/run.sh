@@ -146,6 +146,7 @@ echo "-M                       : ISC depth (default $ISC_DEPTH)"
 echo "-d                       : USE_MEAN_COMP (default 1)"
 echo "-T                       : Toml regif definition file (default \"$REGIF_FILE_S\"). Use several times to give all the regfiles, if several."
 echo "-p                       : Dop implementation (default Ilp)"
+echo "-D                       : GRAM_NB (default: $GRAM_NB)"
 echo "-- <run_edalize options> : run_edalize options."
 
 
@@ -163,7 +164,7 @@ echo "INFO> Parse command line"
 # Initialize your own variables here:
 NTT_RDX_CUT_S_TMP=()
 REGIF_FILE_S_TMP=()
-while getopts "Chzg:l:R:P:S:w:t:m:c:H:K:s:e:b:q:W:A:J:I:L:B:r:V:X:Y:Z:G:o:u:f:O:U:F:i:j:k:x:E:y:n:a:M:T:p:d:" opt; do
+while getopts "Chzg:l:R:P:S:w:t:m:c:H:K:s:e:b:q:W:A:J:I:L:B:r:V:X:Y:Z:G:o:u:f:O:U:F:i:j:k:x:E:y:n:a:M:T:p:d:D:" opt; do
   case "$opt" in
     h)
       usage
@@ -314,6 +315,9 @@ while getopts "Chzg:l:R:P:S:w:t:m:c:H:K:s:e:b:q:W:A:J:I:L:B:r:V:X:Y:Z:G:o:u:f:O:
       ;;
     d)
       USE_MEAN_COMP=$OPTARG
+      ;;
+    D)
+      GRAM_NB=$OPTARG
       ;;
     :)
       echo "$0: Must supply an argument to -$OPTARG." >&2
@@ -664,7 +668,7 @@ if [ $GEN_STIMULI -eq 1 ] ; then
 
   echo ""
   pkg_cmd="python3 ${PROJECT_DIR}/hw/module/pe_pbs/module/pep_common/scripts/gen_pep_batch_definition_pkg.py\
-          -f -c $BATCH_PBS_NB -H $TOTAL_PBS_NB -o ${RTL_DIR}/pep_batch_definition_pkg.sv"
+          -f -c $BATCH_PBS_NB -H $TOTAL_PBS_NB -g $GRAM_NB -o ${RTL_DIR}/pep_batch_definition_pkg.sv"
   echo "INFO> BATCH_PBS_NB=$BATCH_PBS_NB TOTAL_PBS_NB=$TOTAL_PBS_NB"
   echo "INFO> pep_batch_definition_pkg.sv"
   echo "INFO> Running : $pkg_cmd"
