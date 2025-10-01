@@ -421,8 +421,14 @@ just merge_elf top_hpu_tandem2
 Once merged you will be able to program the two pdis.
 
 ```
-just program top_hpu
+just program top_hpu XFL1MND5BQYG
 ```
+
+> [!TIP]
+> XFL1MND5BQYG is a fake serial number. To get your serial number you can either:
+> * read it on the box you received
+> * when AMI driver is loaded and AMC is in the expected version you can run a command like ```cat /sys/module/ami/drivers/pci\:ami/0000\:24\:00.0/board_serial``` (replacing 24 by the PCIe slot id of your board)
+> * with xsdb you can run ```xsdb -eval "connect;puts [lsort -unique [regex -all -inline {( XFL[A-Z0-9]*)} [targets -target-properties]]]"```. This gives you all the serial numbers available on your machine with a character 'A' added at the end.
 
 > [!WARNING]
 > Note: if booting from OSPI is required after programming with Tandem, please run ```xsdb versal/scripts/jtag/write_ospi_mode.tcl``` beforehand.
